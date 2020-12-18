@@ -163,7 +163,7 @@ var (
 				Transport: tr,
 			}
 
-			iamServer := viper.GetString("local_mount_point")
+			iamServer := viper.GetString("IAM_Server")
 			if os.Getenv("IAM_SERVER") != "" {
 				iamServer = os.Getenv("IAM_SERVER")
 			}
