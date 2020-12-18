@@ -127,6 +127,9 @@ mountedVolume/*
 .*instance/*.json
 .*instance/*.conf
 
+# local configs
+*.yml
+
 # Assets
 data/
 pkg/rclone/*.go

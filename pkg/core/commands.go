@@ -42,10 +42,9 @@ func Execute() {
 
 var (
 	// Used for flags.
-	cfgFile        string //nolint:gochecknoglobals
-	logFile        string //nolint:gochecknoglobals
-	localMountPath string //nolint:gochecknoglobals
-	errNumArgs     = errors.New("requires the following arguments: <instance name> <s3 endpoint> <rclone remote path> <local mount point>")
+	cfgFile    string //nolint:gochecknoglobals
+	logFile    string //nolint:gochecknoglobals
+	errNumArgs = errors.New("requires the following arguments: <instance name> <s3 endpoint> <rclone remote path> <local mount point>")
 
 	// rootCmd the sts-wire command
 	rootCmd = &cobra.Command{ //nolint:exhaustivestruct,gochecknoglobals
@@ -53,12 +52,14 @@ var (
 		Short: "",
 		Args: func(cmd *cobra.Command, args []string) error {
 			fmt.Println()
-			if len(args) < minNumArgs {
-				return errNumArgs
-			}
-			if len(args) == 4 {
-				if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
-					panic(err)
+			if cfgFile == "" {
+				if len(args) < minNumArgs {
+					return errNumArgs
+				}
+				if len(args) == 4 {
+					if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
+						panic(err)
+					}
 				}
 			}
 
@@ -84,19 +85,43 @@ var (
 				Scanner: inputReader,
 			}
 
-			instance := os.Args[1]
+			var (
+				instance       string
+				confDir        string
+				s3Endpoint     string
+				remote         string
+				localMountPath string
+			)
 
-			confDir := "." + instance
-
-			_, err := os.Stat(confDir)
-			if os.IsNotExist(err) {
-				os.Mkdir(confDir, os.ModePerm)
+			if cfgFile != "" {
+				instance = viper.GetString("instance_name")
+				s3Endpoint = viper.GetString("s3_endpoint")
+				remote = viper.GetString("rclone_remote_path")
+				localMountPath = viper.GetString("local_mount_point")
+			} else {
+				instance = os.Args[1]
+				s3Endpoint = os.Args[2]
+				remote = os.Args[3]
+				localMountPath = os.Args[4]
 			}
 
-			s3Endpoint := os.Args[2]
+			confDir = "." + instance
 
-			remote := os.Args[3]
-			localMountPath = os.Args[4]
+			_, errStat := os.Stat(confDir)
+			if os.IsNotExist(errStat) {
+				errMkdir := os.MkdirAll(confDir, os.ModePerm)
+
+				if errMkdir != nil {
+					log.Err(errMkdir).Msg("command cannot create instance folder")
+					panic(errMkdir)
+				}
+			}
+
+			log.Info().Str("istance", instance).Msg("command")
+			log.Info().Str("s3Endpoint", s3Endpoint).Msg("command")
+			log.Info().Str("remote", remote).Msg("command")
+			log.Info().Str("localMountPath", localMountPath).Msg("command")
+			log.Info().Str("confDir", confDir).Msg("command")
 
 			//fmt.Println(instance)
 
@@ -138,10 +163,11 @@ var (
 				Transport: tr,
 			}
 
-			iamServer := ""
+			iamServer := viper.GetString("local_mount_point")
 			if os.Getenv("IAM_SERVER") != "" {
 				iamServer = os.Getenv("IAM_SERVER")
 			}
+			log.Info().Str("iamServer", iamServer).Msg("command")
 
 			clientIAM := InitClientConfig{
 				ConfDir:        confDir,

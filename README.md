@@ -60,13 +60,27 @@ As you can see, to use the `sts-wire` you need the following arguments to be pas
 export IAM_SERVER="https://my.iam.server.com"
 ```
 
+Alternatively, you can create a YAML configuration file like the following:
+
+```yaml
+---
+instance_name: test_instance
+s3_endpoint: http://localhost:9000
+rclone_remote_path: /test
+local_mount_point: ./my_local_mountpoint
+IAM_Server: https://my.iam.server.com
+```
+
 ### Launch the program
 
 In the following example you can see how the program is launched:
 
 ```bash
 IAM_SERVER="https://my.iam.server.com" ./sts-wire myMinio https://myserver.com:9000 / ./mountedVolume
+# Using a config file name myConfig.yml
+./sts-wire --config myConfig.yml
 ```
+
 
 After that, you have to follow all the instructions and providing a password for credentials encryption when requested.
 Eventually, if everything went well, on your browser you will be prompted with a message like:
