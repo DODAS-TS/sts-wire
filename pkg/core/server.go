@@ -149,7 +149,7 @@ func (s *Server) Start() error {
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
 			//w.Write([]byte(msg))
-			w.Write([]byte("VOLUME WILL BE MOUNTED IN FEW SECS, YOU CAN NOW CLOSE THIS TAB. \n"))
+			w.Write([]byte(htmlMountingPage))
 
 			sigint <- 1
 
@@ -350,3 +350,76 @@ func (s *Server) Start() error {
 
 	}
 }
+
+const (
+	htmlMountingPage = `<!DOCTYPE HTML>
+<html>
+	<head>
+	<title>STS-WIRE</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<style>
+		html,
+		body {
+		height: 100%;
+		}
+		body {
+		display: flex;
+		flex-wrap: wrap;
+		margin: 0;
+		}
+		.header-menu,
+		footer {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		}
+		.header-menu {
+		justify-content: center;
+		height: 60px;
+		background: #1c87c9;
+		color: #fff;
+		}
+		h2 {
+		margin: 0 0 8px;
+		}
+		ul li {
+		display: inline-block;
+		padding: 0 10px;
+		list-style: none;
+		}
+		section {
+		flex: 1;
+		margin: auto;
+		width: 50%;
+		padding: 10px;
+		}
+		article {
+		margin: auto;
+		width: 50%;
+		padding: 10px;
+		}
+		footer {
+		padding: 0 10px;
+		background: #ccc;
+		}
+	</style>
+	</head>
+	<body>
+	<header class="header-menu">
+		<h1>STS-WIRE</h1>
+	</header>
+	<section>
+		<article>
+		<header>
+			<h2>Info</h2>
+			<small>Mounting process</small>
+		</header>
+		<p>Volume will be mounted in few seconds... You can close this tab!</p>
+		</article>
+	</section>
+	<footer>
+		<small>© DODAS-TS. All rights reserved</small>
+	</footer>
+	</body>
+</html>`
+)
