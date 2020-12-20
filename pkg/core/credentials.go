@@ -52,7 +52,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		log.Info().Str("REFRESH_TOKEN", os.Getenv("REFRESH_TOKEN")).Msg("credentials")
 
 		if t.IAMServer == "" {
-			endpoint, err = t.Scanner.GetInputString("Insert the IAM endpoint for the instance: ",
+			endpoint, err = t.Scanner.GetInputString("Insert the IAM endpoint",
 				"https://iam-demo.cloud.cnaf.infn.it")
 			if err != nil {
 				panic(err)
