@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -46,16 +47,14 @@ type Server struct {
 }
 
 // Start ..
-func (s *Server) Start() error {
-
+func (s *Server) Start() error { //nolint: funlen, gocognit
 	state := RandomState()
 	isByHand := os.Getenv("REFRESH_TOKEN")
 	credsIAM := IAMCreds{}
 	endpoint := s.Endpoint
 	clientResponse := s.Response
 
-	if isByHand == "" {
-
+	if isByHand == "" { //nolint:nestif
 		endpoint := s.Endpoint
 		clientResponse := s.Response
 
@@ -69,7 +68,7 @@ func (s *Server) Start() error {
 		config := oauth2.Config{
 			ClientID:     clientResponse.ClientID,
 			ClientSecret: clientResponse.ClientSecret,
-			Endpoint: oauth2.Endpoint{
+			Endpoint: oauth2.Endpoint{ // nolint:exhaustivestruct
 				AuthURL:  endpoint + "/authorize",
 				TokenURL: endpoint + "/token",
 			},
@@ -118,7 +117,7 @@ func (s *Server) Start() error {
 
 			//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
 			providers := []credentials.Provider{
-				&IAMProvider{
+				&IAMProvider{ //nolint: exhaustivestruct
 					StsEndpoint: s.S3Endpoint,
 					Token:       token,
 					HTTPClient:  &s.Client.HTTPClient,
@@ -155,13 +154,17 @@ func (s *Server) Start() error {
 				http.Error(w, errAsset.Error(), http.StatusInternalServerError)
 				return
 			}
-			w.Write(html)
+
+			_, errWrite := w.Write(html)
+			if errWrite != nil {
+				panic(errWrite)
+			}
 
 			sigint <- 1
 
 		})
 
-		address := fmt.Sprintf("localhost:3128")
+		address := "localhost:3128"
 		urlBrowse := fmt.Sprintf("http://%s/", address)
 
 		log.Info().Str("IAM auth URL", urlBrowse).Msg("Server")
@@ -179,10 +182,10 @@ func (s *Server) Start() error {
 			color.Yellow.Println("-> curl \"<your resulting address e.g. http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf>\"")
 		}
 
-		srv := &http.Server{Addr: address}
+		srv := &http.Server{Addr: address} // nolint: exhaustivestruct
 
 		idleConnsClosed := make(chan struct{})
-		go func() {
+		closeConn := func() {
 			<-sigint
 
 			// We received an interrupt signal, shut down.
@@ -190,18 +193,19 @@ func (s *Server) Start() error {
 				// Error from closing listeners, or context timeout:
 				log.Err(err).Msg("server")
 			}
-			close(idleConnsClosed)
-		}()
 
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			close(idleConnsClosed)
+		}
+
+		go closeConn()
+
+		if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
 			// Error starting or closing listener:
 			log.Err(err).Msg("server")
 		}
 
 		<-idleConnsClosed
-
 	} else {
-
 		token := os.Getenv("ACCESS_TOKEN")
 
 		credsIAM.AccessToken = token
@@ -217,7 +221,7 @@ func (s *Server) Start() error {
 
 		//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
 		providers := []credentials.Provider{
-			&IAMProvider{
+			&IAMProvider{ // nolint:exhaustivestruct
 				StsEndpoint: s.S3Endpoint,
 				Token:       token,
 				HTTPClient:  &s.Client.HTTPClient,
@@ -245,7 +249,6 @@ func (s *Server) Start() error {
 			log.Err(err).Msg("server")
 			panic(err)
 		}
-
 	}
 
 	log.Info().Str("s.S3Endpoint", s.S3Endpoint).Msg("server")
@@ -275,7 +278,10 @@ func (s *Server) Start() error {
 		panic(err)
 	}
 
-	MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	if errMount != nil {
+		panic(errMount)
+	}
 
 	log.Info().Str("Mounted on", s.LocalPath).Msg("Server")
 	color.Green.Printf("==> Volume mounted on %s", s.LocalPath)
@@ -312,10 +318,13 @@ func (s *Server) Start() error {
 		v.Set("refresh_token", credsIAM.RefreshToken)
 
 		url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
+		if err != nil {
+			panic(err)
+		}
 
 		//fmt.Println(url.String())
 
-		req := http.Request{
+		req := http.Request{ // nolint:exhaustivestruct
 			Method: "POST",
 			URL:    url,
 		}
@@ -352,7 +361,8 @@ func (s *Server) Start() error {
 			panic(err)
 		}
 
-		time.Sleep(time.Duration(s.RefreshTokenRenew) * time.Minute)
+		r.Body.Close()
 
+		time.Sleep(time.Duration(s.RefreshTokenRenew) * time.Minute)
 	}
 }

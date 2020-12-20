@@ -14,12 +14,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	exeFileMode = 0750
+	fileMode    = 0644
+)
+
 func CacheDir() (string, error) {
 	cacheDir, errCacheDir := os.UserCacheDir()
 	if errCacheDir != nil {
 		log.Err(errCacheDir).Msg("Caching dir not available")
 
-		return "", errCacheDir
+		return "", fmt.Errorf("CacheDir %w", errCacheDir)
 	}
 
 	return path.Join(cacheDir, "sts-wire"), nil
@@ -28,18 +33,18 @@ func CacheDir() (string, error) {
 func ExePath() (string, error) {
 	cacheDir, errCacheDir := CacheDir()
 	if errCacheDir != nil {
-
 		return "", errCacheDir
 	}
 
 	return path.Join(cacheDir, "rclone_osx"), nil
 }
 
-func PrepareRclone() error {
+func PrepareRclone() error { // nolint: funlen
 	baseDir, errCacheDir := CacheDir()
 	if errCacheDir != nil {
 		return errCacheDir
 	}
+
 	log.Info().Str("basedir", baseDir).Msg("PrepareRclone")
 
 	rcloneFile, errExePath := ExePath()
@@ -62,14 +67,13 @@ func PrepareRclone() error {
 	log.Info().Msg("PrepareRclone - create executable")
 
 	errMkdir := os.MkdirAll(baseDir, os.ModePerm)
-
-	if errMkdir != nil && os.IsExist(errMkdir) == false {
+	if errMkdir != nil && !os.IsExist(errMkdir) {
 		log.Err(errMkdir).Msg("Cannot create rclone cache dir")
 
 		return fmt.Errorf("prepare rclone %w", errMkdir)
 	}
 
-	rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE, 0640)
+	rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE, fileMode)
 	if errCreate != nil {
 		log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
 
@@ -91,7 +95,7 @@ func PrepareRclone() error {
 
 	log.Info().Msg("PrepareRclone - change executable mod")
 
-	errChmod := os.Chmod(rcloneFile, os.FileMode(0750))
+	errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
 	if errChmod != nil {
 		log.Err(errChmod).Msg("Cannot make rclone an executable in cache dir")
 
@@ -99,11 +103,9 @@ func PrepareRclone() error {
 	}
 
 	return nil
-
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) error {
-
+func MountVolume(instance string, remotePath string, localPath string, configPath string) error { // nolint: funlen
 	log.Info().Msg("Prepare Rclone")
 	errPrepare := PrepareRclone()
 	if errPrepare != nil {
@@ -120,7 +122,10 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	log.Info().Msg("Make local dir")
 	_, errLocalPath := os.Stat(localPath)
 	if os.IsNotExist(errLocalPath) {
-		os.Mkdir(localPath, os.ModePerm)
+		errMkdir := os.MkdirAll(localPath, os.ModePerm)
+		if errMkdir != nil {
+			panic(errMkdir)
+		}
 	}
 
 	conf := fmt.Sprintf("%s:%s", instance, remotePath)
@@ -178,7 +183,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	)
 
 	log.Info().Msg("Call rclone")
-	grepCmd.Start()
+
+	errStart := grepCmd.Start()
+	if errStart != nil {
+		panic(errStart)
+	}
 
 	return nil
 }
