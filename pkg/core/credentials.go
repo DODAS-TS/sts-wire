@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/awnumar/memguard"
 	"github.com/rs/zerolog/log"
 
 	"github.com/gookit/color"
@@ -25,35 +26,34 @@ type InitClientConfig struct {
 	NoPWD          bool
 }
 
-func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd string, err error) {
+func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) {
 
 	rbody, err := ioutil.ReadFile(t.ConfDir + "/" + instance + ".json")
 	if err != nil {
 
-		tmpl, err := template.New("client").Parse(t.ClientTemplate)
-		if err != nil {
-			panic(err)
+		tmpl, errParser := template.New("client").Parse(t.ClientTemplate)
+		if errParser != nil {
+			panic(errParser)
 		}
 
 		var b bytes.Buffer
-		err = tmpl.Execute(&b, t.ClientConfig)
-		if err != nil {
-			panic(err)
+		errExecute := tmpl.Execute(&b, t.ClientConfig)
+
+		if errExecute != nil {
+			panic(errExecute)
 		}
 
 		request := b.String()
 
-		fmt.Println(request)
+		log.Info().Str("URL", request).Msg("credentials")
 
 		contentType := "application/json"
-		//body := url.Values{}
-		//body. Set(request)
 
-		fmt.Println(os.Getenv("REFRESH_TOKEN"))
+		log.Info().Str("REFRESH_TOKEN", os.Getenv("REFRESH_TOKEN")).Msg("credentials")
 
 		if t.IAMServer == "" {
-
-			endpoint, err = t.Scanner.GetInputString("Insert the IAM endpoint for the instance: ", "https://iam-demo.cloud.cnaf.infn.it")
+			endpoint, err = t.Scanner.GetInputString("Insert the IAM endpoint for the instance: ",
+				"https://iam-demo.cloud.cnaf.infn.it")
 			if err != nil {
 				panic(err)
 			}
@@ -73,35 +73,34 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			panic(err)
 		}
 
-		//fmt.Println(r.StatusCode, r.Status)
+		log.Info().Int("StatusCode", r.StatusCode).Str("Status", r.Status).Msg("credentials")
 
-		rbody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
+		rbody, errReadBody := ioutil.ReadAll(r.Body)
+		if errReadBody != nil {
+			panic(errReadBody)
 		}
 
-		//fmt.Println(string(rbody))
+		log.Info().Str("body", string(rbody)).Msg("credentials")
 
-		err = json.Unmarshal(rbody, &clientResponse)
-		if err != nil {
-			panic(err)
+		errUnmarshall := json.Unmarshal(rbody, &clientResponse)
+		if errUnmarshall != nil {
+			panic(errUnmarshall)
 		}
 
 		clientResponse.Endpoint = endpoint
 
 		if !t.NoPWD {
-			passwd := ""
+			var errGetPasswd error
 
 			if os.Getenv("REFRESH_TOKEN") == "" {
-
 				passMsg := fmt.Sprintf("\n%s Insert a pasword for the secret's encryption: ", color.Yellow.Sprint("==>"))
-				passwd, err = t.Scanner.GetPassword(passMsg, false)
+				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, false)
 
-				if err != nil {
-					panic(err)
+				if errGetPasswd != nil {
+					panic(errGetPasswd)
 				}
 			} else {
-				passwd = "asdasdasd"
+				passwd = memguard.NewEnclave([]byte("asdasdasd"))
 			}
 
 			dumpClient := Encrypt(rbody, passwd)
@@ -113,24 +112,25 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		}
 	} else {
 		if !t.NoPWD {
-			passwd := ""
+			var errGetPasswd error
 
 			if os.Getenv("REFRESH_TOKEN") == "" {
 				passMsg := fmt.Sprintf("\n%s Insert a pasword for the secret's decryption: ", color.Yellow.Sprint("==>"))
-				passwd, err = t.Scanner.GetPassword(passMsg, true)
+				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
 
-				if err != nil {
-					panic(err)
+				if errGetPasswd != nil {
+					panic(errGetPasswd)
 				}
 			} else {
-				passwd = "asdasdasd"
+				passwd = memguard.NewEnclave([]byte("asdasdasd"))
 			}
 
-			err = json.Unmarshal(Decrypt(rbody, passwd), &clientResponse)
-			if err != nil {
-				panic(err)
+			errUnmarshal := json.Unmarshal(Decrypt(rbody, passwd), &clientResponse)
+			if errUnmarshal != nil {
+				panic(errUnmarshal)
 			}
-			fmt.Println(clientResponse.Endpoint)
+
+			log.Info().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
 			endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
 		}
 	}

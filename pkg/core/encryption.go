@@ -6,7 +6,11 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"io"
+
+	"github.com/awnumar/memguard"
+	"github.com/rs/zerolog/log"
 )
 
 func CreateHash(key string) string {
@@ -15,8 +19,15 @@ func CreateHash(key string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func Encrypt(data []byte, passphrase string) []byte {
-	block, _ := aes.NewCipher([]byte(CreateHash(passphrase)))
+func Encrypt(data []byte, password *memguard.Enclave) []byte {
+	log.Info().Msg("encryption - open enlcave")
+	passphrase, errOpenEnclave := password.Open()
+	if errOpenEnclave != nil {
+		memguard.SafePanic(errOpenEnclave)
+	}
+	defer passphrase.Destroy() // Destroy the copy when we return
+
+	block, _ := aes.NewCipher([]byte(CreateHash(string(passphrase.Bytes()))))
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		panic(err.Error())
@@ -29,8 +40,17 @@ func Encrypt(data []byte, passphrase string) []byte {
 	return ciphertext
 }
 
-func Decrypt(data []byte, passphrase string) []byte {
-	key := []byte(CreateHash(passphrase))
+func Decrypt(data []byte, password *memguard.Enclave) []byte {
+	log.Info().Msg("decryption - open enlcave")
+	passphrase, errOpenEnclave := password.Open()
+	if errOpenEnclave != nil {
+		memguard.SafePanic(errOpenEnclave)
+	}
+	defer passphrase.Destroy() // Destroy the copy when we return
+
+	fmt.Println(string(passphrase.Bytes()))
+
+	key := []byte(CreateHash(string(passphrase.Bytes())))
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())

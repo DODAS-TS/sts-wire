@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 
+	"github.com/awnumar/memguard"
 	"github.com/gookit/color"
 	"github.com/rs/zerolog/log"
 )
@@ -21,15 +22,16 @@ var (
 	errPasswordMismatch = errors.New("The two password inserted are not the same.")
 )
 
-func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (password string, err error) {
+func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (password *memguard.Enclave, err error) {
 	fmt.Print(question)
-	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	bytePassword, err := terminal.ReadPassword(syscall.Stdin)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("get password %w", err)
 	}
 
 	if only4Decription {
-		return string(bytePassword), nil
+		passEnclave := memguard.NewEnclave(bytePassword)
+		return passEnclave, nil
 	}
 
 	fmt.Println()
@@ -38,14 +40,15 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 
 	bytePassword2, err := terminal.ReadPassword(int(syscall.Stdin))
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("get password check %w", err)
 	}
 	if string(bytePassword) == string(bytePassword2) {
-		return string(bytePassword), nil
+		passEnclave := memguard.NewEnclave(bytePassword)
+		return passEnclave, nil
 	}
 
 	log.Err(errPasswordMismatch).Msg("GetPassword")
-	return "", errPasswordMismatch
+	return nil, errPasswordMismatch
 }
 
 func (t *GetInputWrapper) GetInputString(question string, def string) (text string, err error) {
