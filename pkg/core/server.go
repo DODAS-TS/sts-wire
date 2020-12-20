@@ -35,13 +35,14 @@ type IAMCreds struct {
 
 // Server ..
 type Server struct {
-	Client     InitClientConfig
-	Instance   string
-	S3Endpoint string
-	RemotePath string
-	LocalPath  string
-	Endpoint   string
-	Response   ClientResponse
+	Client            InitClientConfig
+	Instance          string
+	S3Endpoint        string
+	RemotePath        string
+	LocalPath         string
+	Endpoint          string
+	Response          ClientResponse
+	RefreshTokenRenew int
 }
 
 // Start ..
@@ -351,7 +352,7 @@ func (s *Server) Start() error {
 			panic(err)
 		}
 
-		time.Sleep(10 * time.Minute)
+		time.Sleep(time.Duration(s.RefreshTokenRenew) * time.Minute)
 
 	}
 }

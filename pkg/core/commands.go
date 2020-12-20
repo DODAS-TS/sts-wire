@@ -32,7 +32,7 @@ const (
 	minNumArgs = 4
 )
 
-// Execute of the sts-wire command
+// Execute of the sts-wire command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -40,13 +40,20 @@ func Execute() {
 	}
 }
 
+const (
+	errNumArgsS          = "requires the following arguments: <instance name> <s3 endpoint> <rclone remote path> <local mount point>"
+	numAcceptedArguments = 4
+)
+
 var (
 	// Used for flags.
-	cfgFile    string //nolint:gochecknoglobals
-	logFile    string //nolint:gochecknoglobals
-	errNumArgs = errors.New("requires the following arguments: <instance name> <s3 endpoint> <rclone remote path> <local mount point>")
+	cfgFile           string //nolint:gochecknoglobals
+	logFile           string //nolint:gochecknoglobals
+	insecureConn      bool   //nolint:gochecknoglobals
+	refreshTokenRenew int    //nolint:gochecknoglobals
+	errNumArgs        = errors.New(errNumArgsS)
 
-	// rootCmd the sts-wire command
+	// rootCmd the sts-wire command.
 	rootCmd = &cobra.Command{ //nolint:exhaustivestruct,gochecknoglobals
 		Use:   "sts-wire <instance name> <s3 endpoint> <rclone remote path> <local mount point>",
 		Short: "",
@@ -56,7 +63,7 @@ var (
 				if len(args) < minNumArgs {
 					return errNumArgs
 				}
-				if len(args) == 4 {
+				if len(args) == numAcceptedArguments {
 					if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
 						panic(err)
 					}
@@ -74,7 +81,7 @@ var (
 				log.Logger = zerolog.New(logTarget).With().Timestamp().Logger()
 				defer logTarget.Close()
 			} else {
-				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}) // nolint:exhaustivestruct
 			}
 
 			fmt.Println(programBanner)
@@ -123,8 +130,6 @@ var (
 			log.Info().Str("localMountPath", localMountPath).Msg("command")
 			log.Info().Str("confDir", confDir).Msg("command")
 
-			//fmt.Println(instance)
-
 			// if instance == "" {
 			// 	instance, err := scanner.GetInputString("Insert a name for the instance: ", "")
 			// 	if err != nil {
@@ -134,32 +139,32 @@ var (
 			// 	}
 			// }
 
-			clientConfig := IAMClientConfig{
+			clientConfig := IAMClientConfig{ // nolint:exhaustivestruct
 				Host:       "localhost",
 				Port:       3128,
 				ClientName: "oidc-client",
 			}
 
 			// Create a CA certificate pool and add cert.pem to it
-			//caCert, err := ioutil.ReadFile("MINIO.pem")
-			//if err != nil {
+			// caCert, err := ioutil.ReadFile("MINIO.pem")
+			// if err != nil {
 			//	log.Fatal(err)
-			//}
-			//caCertPool := x509.NewCertPool()
-			//caCertPool.AppendCertsFromPEM(caCert)
+			// }
+			// caCertPool := x509.NewCertPool()
+			// caCertPool.AppendCertsFromPEM(caCert)
 
 			// Create the TLS Config with the CA pool and enable Client certificate validation
-			cfg := &tls.Config{
-				//ClientCAs: caCertPool,
-				InsecureSkipVerify: true,
+			cfg := &tls.Config{ // nolint: exhaustivestruct
+				// ClientCAs: caCertPool,
+				InsecureSkipVerify: insecureConn,
 			}
-			//cfg.BuildNameToCertificate()
+			// cfg.BuildNameToCertificate()
 
-			tr := &http.Transport{
+			tr := &http.Transport{ // nolint:exhaustivestruct
 				TLSClientConfig: cfg,
 			}
 
-			httpClient := &http.Client{
+			httpClient := &http.Client{ // nolint:exhaustivestruct
 				Transport: tr,
 			}
 
@@ -193,14 +198,17 @@ var (
 
 			// fmt.Println(clientResponse.Endpoint)
 
+			log.Info().Int("refreshTokenRenew", refreshTokenRenew).Msg("commands")
+
 			server := Server{
-				Client:     clientIAM,
-				Instance:   instance,
-				S3Endpoint: s3Endpoint,
-				RemotePath: remote,
-				LocalPath:  localMountPath,
-				Endpoint:   endpoint,
-				Response:   clientResponse,
+				Client:            clientIAM,
+				Instance:          instance,
+				S3Endpoint:        s3Endpoint,
+				RemotePath:        remote,
+				LocalPath:         localMountPath,
+				Endpoint:          endpoint,
+				Response:          clientResponse,
+				RefreshTokenRenew: refreshTokenRenew,
 			}
 
 			err = server.Start()
@@ -222,6 +230,11 @@ func init() { //nolint: gochecknoinits
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", "stderr", "where the log has to write, a file path or stderr")
+	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConnection", true, "check the http connection certificate")
+	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 10, "time span to renew the refresh token")
+
+	viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
+	viper.BindPFlag("refreshTokenRenew", rootCmd.PersistentFlags().Lookup("refreshTokenRenew"))
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
@@ -235,7 +248,7 @@ func init() { //nolint: gochecknoinits
 	viper.AddConfigPath(".")
 }
 
-// initConfig of viper
+// initConfig of viper.
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
