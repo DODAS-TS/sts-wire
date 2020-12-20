@@ -47,7 +47,7 @@ type Server struct {
 }
 
 // Start ..
-func (s *Server) Start() error { //nolint: funlen, gocognit
+func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: funlen, gocognit
 	state := RandomState()
 	isByHand := os.Getenv("REFRESH_TOKEN")
 	credsIAM := IAMCreds{}
@@ -306,7 +306,10 @@ func (s *Server) Start() error { //nolint: funlen, gocognit
 
 	// log.Print("- - - - - - - - - - - - - - -")
 	// log.Print("daemon started")
+	return clientResponse, credsIAM, endpoint, nil
+}
 
+func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) {
 	for {
 		v := url.Values{}
 

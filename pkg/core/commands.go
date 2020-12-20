@@ -211,10 +211,12 @@ var (
 				RefreshTokenRenew: refreshTokenRenew,
 			}
 
-			err = server.Start()
-			if err != nil {
-				panic(err)
+			clientResponse, credsIAM, endpoint, errStart := server.Start()
+			if errStart != nil {
+				panic(errStart)
 			}
+
+			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)
 
 			fmt.Printf("Server started and volume mounted in %s", localMountPath)
 			fmt.Printf("To unmount you can see you PID in mount.pid file and kill it.")
