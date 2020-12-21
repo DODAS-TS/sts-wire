@@ -112,6 +112,10 @@ var (
 				localMountPath = os.Args[4]
 			}
 
+			if validLocalPath, err := validator.LocalPath(localMountPath); !validLocalPath {
+				panic(err)
+			}
+
 			confDir = "." + instance
 
 			_, errStat := os.Stat(confDir)
