@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"os/signal"
 	"text/template"
 	"time"
 
@@ -44,6 +46,7 @@ type Server struct {
 	Endpoint          string
 	Response          ClientResponse
 	RefreshTokenRenew int
+	rcloneCmd         *exec.Cmd
 }
 
 // Start ..
@@ -199,8 +202,10 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 		go closeConn()
 
-		if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			// Error starting or closing listener:
+			fmt.Println(err)
+			fmt.Println(errors.Is(err, http.ErrServerClosed))
 			log.Err(err).Msg("server")
 		}
 
@@ -278,10 +283,11 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		panic(err)
 	}
 
-	errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	rcloneCmd, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
 	if errMount != nil {
 		panic(errMount)
 	}
+	s.rcloneCmd = rcloneCmd
 
 	log.Info().Str("Mounted on", s.LocalPath).Msg("Server")
 	color.Green.Printf("==> Volume mounted on %s", s.LocalPath)
@@ -309,63 +315,91 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	return clientResponse, credsIAM, endpoint, nil
 }
 
-func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) {
-	for {
-		v := url.Values{}
+func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) { //nolint:funlen
+	loop := true
+	signalChan := make(chan os.Signal, 1)
 
-		//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
+	signal.Ignore(os.Interrupt)
+	signal.Notify(signalChan, os.Interrupt)
 
-		v.Set("client_id", clientResponse.ClientID)
-		v.Set("client_secret", clientResponse.ClientSecret)
-		v.Set("grant_type", "refresh_token")
-		v.Set("refresh_token", credsIAM.RefreshToken)
+	defer close(signalChan)
 
-		url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
-		if err != nil {
-			panic(err)
+	startT := time.Now()
+
+	for loop {
+		if time.Since(startT) >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
+			startT = time.Now()
+			v := url.Values{}
+
+			//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
+
+			v.Set("client_id", clientResponse.ClientID)
+			v.Set("client_secret", clientResponse.ClientSecret)
+			v.Set("grant_type", "refresh_token")
+			v.Set("refresh_token", credsIAM.RefreshToken)
+
+			url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
+			if err != nil {
+				panic(err)
+			}
+
+			//fmt.Println(url.String())
+
+			req := http.Request{ // nolint:exhaustivestruct
+				Method: "POST",
+				URL:    url,
+			}
+
+			// TODO: retrieve token with https POST with t.httpClient
+			r, err := s.Client.HTTPClient.Do(&req)
+			if err != nil {
+				panic(err)
+			}
+			//fmt.Println(r.StatusCode, r.Status)
+
+			var bodyJSON RefreshTokenStruct
+
+			rbody, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				panic(err)
+			}
+
+			//fmt.Println(string(rbody))
+
+			//fmt.Println(string(rbody))
+			err = json.Unmarshal(rbody, &bodyJSON)
+			if err != nil {
+				panic(err)
+			}
+
+			// TODO:
+			//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
+
+			//fmt.Println(bodyJSON.AccessToken)
+
+			err = ioutil.WriteFile(".token", []byte(bodyJSON.AccessToken), 0600)
+			if err != nil {
+				panic(err)
+			}
+
+			r.Body.Close()
 		}
 
-		//fmt.Println(url.String())
+		select {
+		case <-signalChan:
+			log.Info().Msg("UpdateTokenLoop interrupt signa!")
+			loop = false
 
-		req := http.Request{ // nolint:exhaustivestruct
-			Method: "POST",
-			URL:    url,
+			log.Info().Msg("Interrupt rclone process")
+			_ = s.rcloneCmd.Process.Signal(os.Interrupt)
+		default:
 		}
 
-		// TODO: retrieve token with https POST with t.httpClient
-		r, err := s.Client.HTTPClient.Do(&req)
-		if err != nil {
-			panic(err)
-		}
-		//fmt.Println(r.StatusCode, r.Status)
-
-		var bodyJSON RefreshTokenStruct
-
-		rbody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			panic(err)
-		}
-
-		//fmt.Println(string(rbody))
-
-		//fmt.Println(string(rbody))
-		err = json.Unmarshal(rbody, &bodyJSON)
-		if err != nil {
-			panic(err)
-		}
-
-		// TODO:
-		//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
-
-		//fmt.Println(bodyJSON.AccessToken)
-
-		err = ioutil.WriteFile(".token", []byte(bodyJSON.AccessToken), 0600)
-		if err != nil {
-			panic(err)
-		}
-
-		r.Body.Close()
-
-		time.Sleep(time.Duration(s.RefreshTokenRenew) * time.Minute)
+		time.Sleep(1 * time.Second)
 	}
+
+	signal.Stop(signalChan)
+
+	time.Sleep(1 * time.Second)
+	log.Info().Msg("UpdateTokenLoop exit")
 }

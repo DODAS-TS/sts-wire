@@ -11,6 +11,7 @@ import (
 
 	"github.com/DODAS-TS/sts-wire/pkg/template"
 	"github.com/DODAS-TS/sts-wire/pkg/validator"
+	"github.com/gookit/color"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,8 +36,7 @@ const (
 // Execute of the sts-wire command.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 }
 
@@ -216,17 +216,16 @@ var (
 				panic(errStart)
 			}
 
-			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)
+			color.Green.Printf("! Server started and volume mounted in %s", localMountPath)
 
-			fmt.Printf("Server started and volume mounted in %s", localMountPath)
-			fmt.Printf("To unmount you can see you PID in mount.pid file and kill it.")
+			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)
 
 			return nil
 		},
 	}
 )
 
-// init of the cobra root command and viper configuration
+// init of the cobra root command and viper configuration.
 func init() { //nolint: gochecknoinits
 	cobra.OnInitialize(initConfig)
 
@@ -237,6 +236,7 @@ func init() { //nolint: gochecknoinits
 
 	viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
 	viper.BindPFlag("refreshTokenRenew", rootCmd.PersistentFlags().Lookup("refreshTokenRenew"))
+	viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")

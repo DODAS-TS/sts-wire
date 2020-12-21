@@ -105,18 +105,18 @@ func PrepareRclone() error { // nolint: funlen
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) error { // nolint: funlen
+func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, error) { // nolint: funlen
 	log.Info().Msg("Prepare Rclone")
 	errPrepare := PrepareRclone()
 	if errPrepare != nil {
 		log.Err(errPrepare).Msg("Cannot prepare Rclone")
-		return errPrepare
+		return nil, errPrepare
 	}
 
 	log.Info().Msg("Get Rclone file path")
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
-		return errExePath
+		return nil, errExePath
 	}
 
 	log.Info().Msg("Make local dir")
@@ -134,19 +134,19 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	configPathAbs, errConfigPath := filepath.Abs(path.Join(configPath, "/rclone.conf"))
 	if errConfigPath != nil {
 		log.Err(errConfigPath).Msg("server")
-		return errConfigPath
+		return nil, errConfigPath
 	}
 
 	logPath, errLogPath := filepath.Abs(path.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
 		log.Err(errLogPath).Msg("server")
-		return errLogPath
+		return nil, errLogPath
 	}
 
 	localPathAbs, errLocalPath := filepath.Abs(localPath)
 	if errLocalPath != nil {
 		log.Err(errLocalPath).Msg("server")
-		return errLocalPath
+		return nil, errLocalPath
 	}
 
 	log.Info().Str("command", strings.Join([]string{
@@ -165,7 +165,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		conf,
 		localPathAbs,
 	}, " ")).Msg("Prepare rclone call")
-	grepCmd := exec.Command(
+	rcloneCmd := exec.Command(
 		rcloneFile,
 		"--config",
 		configPathAbs,
@@ -182,12 +182,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		localPathAbs,
 	)
 
-	log.Info().Msg("Call rclone")
-
-	errStart := grepCmd.Start()
+	log.Info().Msg("Start rclone")
+	errStart := rcloneCmd.Start()
 	if errStart != nil {
 		panic(errStart)
 	}
 
-	return nil
+	return rcloneCmd, nil
 }
