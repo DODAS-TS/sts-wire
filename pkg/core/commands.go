@@ -51,6 +51,7 @@ var (
 	logFile           string //nolint:gochecknoglobals
 	insecureConn      bool   //nolint:gochecknoglobals
 	refreshTokenRenew int    //nolint:gochecknoglobals
+	noPWD             bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
 
 	// rootCmd the sts-wire command.
@@ -185,7 +186,7 @@ var (
 				HTTPClient:     *httpClient,
 				IAMServer:      iamServer,
 				ClientTemplate: template.ClientTemplate,
-				NoPWD:          false,
+				NoPWD:          noPWD,
 			}
 
 			// Client registration
@@ -237,10 +238,27 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", "stderr", "where the log has to write, a file path or stderr")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConnection", true, "check the http connection certificate")
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 10, "time span to renew the refresh token")
+	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 
-	viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
-	viper.BindPFlag("refreshTokenRenew", rootCmd.PersistentFlags().Lookup("refreshTokenRenew"))
-	viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
+	errFlag := viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("refreshTokenRenew", rootCmd.PersistentFlags().Lookup("refreshTokenRenew"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("noPassword", rootCmd.PersistentFlags().Lookup("noPassword"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
