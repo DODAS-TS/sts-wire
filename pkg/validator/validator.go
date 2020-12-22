@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -21,6 +23,8 @@ var (
 )
 
 func InstanceName(url string) (bool, error) {
+	log.Info().Msg("validator - InstanceName")
+
 	if !validInstanceName.MatchString(url) {
 		return false, ErrNoValidInstanceName
 	}
@@ -29,6 +33,8 @@ func InstanceName(url string) (bool, error) {
 }
 
 func WebURL(url string) (bool, error) {
+	log.Info().Msg("validator - WebURL")
+
 	if !validWebURL.MatchString(url) {
 		return false, ErrNoValidWebURL
 	}
@@ -37,6 +43,8 @@ func WebURL(url string) (bool, error) {
 }
 
 func S3Endpoint(endpoint string) (bool, error) {
+	log.Info().Msg("validator - S3Endpoint")
+
 	if valid, err := WebURL(endpoint); err != nil {
 		return valid, ErrNoValidEndpoint
 	}
@@ -45,6 +53,8 @@ func S3Endpoint(endpoint string) (bool, error) {
 }
 
 func RemotePath(remotePath string) (bool, error) {
+	log.Info().Msg("validator - RemotePath")
+
 	if !validRemotePath.MatchString(remotePath) {
 		return false, ErrNoValidS3RemotePath
 	}
@@ -53,6 +63,8 @@ func RemotePath(remotePath string) (bool, error) {
 }
 
 func LocalPath(localMountPoint string) (bool, error) {
+	log.Info().Msg("validator - LocalPath")
+
 	if !validPath.MatchString(localMountPoint) {
 		return false, ErrNoValidPath
 	}

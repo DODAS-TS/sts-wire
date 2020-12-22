@@ -290,7 +290,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	s.rcloneCmd = rcloneCmd
 
 	log.Info().Str("Mounted on", s.LocalPath).Msg("Server")
-	color.Green.Printf("==> Volume mounted on %s", s.LocalPath)
+	color.Green.Printf("==> Volume mounted at %s\n", s.LocalPath)
 
 	// // TODO: start routine to keep token valid!
 	// cntxt := &daemon.Context{
@@ -387,11 +387,17 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 		select {
 		case <-signalChan:
+			color.Red.Println("==> Exiting...")
 			log.Info().Msg("UpdateTokenLoop interrupt signa!")
 			loop = false
 
 			log.Info().Msg("Interrupt rclone process")
 			_ = s.rcloneCmd.Process.Signal(os.Interrupt)
+
+			status, _ := s.rcloneCmd.Process.Wait()
+			if !status.Exited() {
+				panic("rclone termination error")
+			}
 		default:
 		}
 
@@ -400,6 +406,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 	signal.Stop(signalChan)
 
-	time.Sleep(1 * time.Second)
 	log.Info().Msg("UpdateTokenLoop exit")
+	time.Sleep(1 * time.Second)
+	fmt.Println("==> Bye bye!")
 }

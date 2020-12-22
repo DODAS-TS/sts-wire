@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	programBanner = `
-:'######::'########::'######:::::::::::'##:::::'##:'####:'########::'########:
+	programBanner = `:'######::'########::'######:::::::::::'##:::::'##:'####:'########::'########:
 '##... ##:... ##..::'##... ##:::::::::: ##:'##: ##:. ##:: ##.... ##: ##.....::
  ##:::..::::: ##:::: ##:::..::::::::::: ##: ##: ##:: ##:: ##:::: ##: ##:::::::
 . ######::::: ##::::. ######::'#######: ##: ##: ##:: ##:: ########:: ######:::
@@ -35,6 +34,7 @@ const (
 
 // Execute of the sts-wire command.
 func Execute() {
+	fmt.Println(programBanner)
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
 	}
@@ -59,7 +59,6 @@ var (
 		Use:   "sts-wire <instance name> <s3 endpoint> <rclone remote path> <local mount point>",
 		Short: "",
 		Args: func(cmd *cobra.Command, args []string) error {
-			fmt.Println()
 			if cfgFile == "" {
 				if len(args) < minNumArgs {
 					return errNumArgs
@@ -83,6 +82,9 @@ var (
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if confLog := viper.GetString("instance_name"); logFile == "stderr" && confLog != "" {
+				logFile = confLog
+			}
 			if logFile != "stderr" {
 				logTarget, errLog := os.Create(logFile)
 				if errLog != nil {
@@ -94,7 +96,6 @@ var (
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}) // nolint:exhaustivestruct
 			}
 
-			fmt.Println(programBanner)
 			log.Info().Msg("Start sts-wire")
 
 			inputReader := *bufio.NewReader(os.Stdin)
@@ -244,7 +245,7 @@ var (
 				panic(errStart)
 			}
 
-			color.Green.Printf("! Server started and volume mounted in %s", localMountPath)
+			color.Green.Printf("==> Server started successfully and volume mounted at %s\n", localMountPath)
 
 			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)
 
@@ -301,7 +302,7 @@ func initConfig() {
 		// Use config file from the flag.
 		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
 			if cfgFile != "./config.yml" {
-				fmt.Printf("Info: no '%s' file found\n", cfgFile)
+				color.Yellow.Printf("==> no '%s' file found\n", cfgFile)
 			}
 		} else {
 			viper.SetConfigFile(cfgFile)
@@ -311,8 +312,8 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Info: no configuration file found in all folders, sts-wire will use flags and arguments...")
+		fmt.Println("==> no configuration file found in all folders, sts-wire will use flags and arguments...")
 	} else {
-		fmt.Println("Info: using config file ->", viper.ConfigFileUsed())
+		fmt.Println("==> using config file:", viper.ConfigFileUsed())
 	}
 }
