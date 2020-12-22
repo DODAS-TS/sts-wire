@@ -42,9 +42,12 @@ Usage:
   sts-wire <instance name> <s3 endpoint> <rclone remote path> <local mount point> [flags]
 
 Flags:
-      --config string   config file (default "./config.json")
-  -h, --help            help for sts-wire
-      --log string      where the log has to write, a file path or stderr (default "stderr")
+      --config string           config file (default "./config.json")
+  -h, --help                    help for sts-wire
+      --insecureConnection      check the http connection certificate (default true)
+      --log string              where the log has to write, a file path or stderr (default "stderr")
+      --noPassword              to not encrypt the data with a password
+      --refreshTokenRenew int   time span to renew the refresh token in minutes (default 10)
 ```
 
 As you can see, to use the `sts-wire` you need the following arguments to be passed:

@@ -265,7 +265,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", "stderr", "where the log has to write, a file path or stderr")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConnection", true, "check the http connection certificate")
-	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 10, "time span to renew the refresh token")
+	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 10, "time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 
 	errFlag := viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
