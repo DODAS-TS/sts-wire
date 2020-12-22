@@ -34,7 +34,12 @@ type ClientResponse struct {
 // Returns a base64 encoded random 32 byte string.
 func RandomState() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
@@ -46,7 +51,7 @@ type IAMProvider struct {
 	Creds       *AssumeRoleWithWebIdentityResponse
 }
 
-// AssumeRoleWithWebIdentityResponse the struct of the STS WebIdentity call response
+// AssumeRoleWithWebIdentityResponse the struct of the STS WebIdentity call response.
 type AssumeRoleWithWebIdentityResponse struct {
 	XMLName          xml.Name          `xml:"https://sts.amazonaws.com/doc/2011-06-15/ AssumeRoleWithWebIdentityResponse" json:"-"`
 	Result           WebIdentityResult `xml:"AssumeRoleWithWebIdentityResult"`
@@ -74,21 +79,23 @@ type WebIdentityResult struct {
 	SubjectFromWebIdentityToken string           `xml:",omitempty"`
 }
 
-// Retrieve credentials
+// Retrieve credentials.
 func (t *IAMProvider) Retrieve() (credentials.Value, error) {
-
 	//contentType := "text/html"
 	body := url.Values{}
 	body.Set("Action", "AssumeRoleWithWebIdentity")
 	body.Set("Version", "2011-06-15")
 	body.Set("WebIdentityToken", t.Token)
 
-	// TODO: parameter for duration 
+	// TODO: parameter for duration
 	body.Set("DurationSeconds", "900")
 
-	//fmt.Println(t.stsEndpoint, body.Encode())
+	// fmt.Println(t.stsEndpoint, body.Encode())
 
 	url, err := url.Parse(t.StsEndpoint + "?" + body.Encode())
+	if err != nil {
+		panic(err)
+	}
 
 	req := http.Request{
 		Method: "POST",
@@ -99,26 +106,30 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 	r, err := t.HTTPClient.Do(&req)
 	if err != nil {
 		fmt.Println(err)
-		return credentials.Value{}, err
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
 	}
-	//fmt.Println(r.StatusCode, r.Status)
+	defer r.Body.Close()
+	// fmt.Println(r.StatusCode, r.Status)
 
 	t.Creds = &AssumeRoleWithWebIdentityResponse{}
 
 	rbody, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		fmt.Printf("error: %v", err)
-		return credentials.Value{}, err
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
 	}
-	//fmt.Println(string(rbody))
+	// fmt.Println(string(rbody))
 
 	err = xml.Unmarshal(rbody, t.Creds)
 	if err != nil {
 		fmt.Printf("error: %v", err)
-		return credentials.Value{}, err
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
 	}
 
-	return credentials.Value{
+	return credentials.Value{ // nolint:exhaustivestruct
 		AccessKeyID:     t.Creds.Result.Credentials.AccessKey,
 		SecretAccessKey: t.Creds.Result.Credentials.SecretKey,
 		SessionToken:    t.Creds.Result.Credentials.SessionToken,
@@ -126,7 +137,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 
 }
 
-// IsExpired test
+// IsExpired test.
 func (t *IAMProvider) IsExpired() bool {
 	return t.Creds.Result.Credentials.IsExpired()
 }
