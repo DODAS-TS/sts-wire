@@ -35,6 +35,7 @@ const (
 // Execute of the sts-wire command.
 func Execute() {
 	fmt.Println(programBanner)
+
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
 	}

@@ -401,7 +401,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 		default:
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(750 * time.Millisecond)
 	}
 
 	signal.Stop(signalChan)
