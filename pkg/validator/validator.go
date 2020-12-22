@@ -6,11 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-
-	"github.com/rs/zerolog/log"
 )
 
 var (
+	ErrNoValidFile         = errors.New("no valid file")
+	validFile              = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidLogFile      = errors.New("no valid log file")
+	validLogFile           = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(.log)$`)
 	ErrNoValidPath         = errors.New("no valid path")
 	validPath              = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
 	ErrNoValidEndpoint     = errors.New("no valid s3 endpoint")
@@ -22,9 +24,24 @@ var (
 	validInstanceName      = regexp.MustCompile(`^[\w\-_]+$`)
 )
 
-func InstanceName(url string) (bool, error) {
-	log.Info().Msg("validator - InstanceName")
+func LogFile(logFilePath string) (bool, error) {
+	if !validFile.MatchString(logFilePath) {
+		return false, ErrNoValidFile
+	}
 
+	if !validLogFile.MatchString(logFilePath) {
+		return false, ErrNoValidLogFile
+	}
+
+	_, errAbs := filepath.Abs(filepath.Clean(logFilePath))
+	if errAbs != nil {
+		return false, fmt.Errorf("no valid path: %w", errAbs)
+	}
+
+	return true, nil
+}
+
+func InstanceName(url string) (bool, error) {
 	if !validInstanceName.MatchString(url) {
 		return false, ErrNoValidInstanceName
 	}
@@ -33,8 +50,6 @@ func InstanceName(url string) (bool, error) {
 }
 
 func WebURL(url string) (bool, error) {
-	log.Info().Msg("validator - WebURL")
-
 	if !validWebURL.MatchString(url) {
 		return false, ErrNoValidWebURL
 	}
@@ -43,8 +58,6 @@ func WebURL(url string) (bool, error) {
 }
 
 func S3Endpoint(endpoint string) (bool, error) {
-	log.Info().Msg("validator - S3Endpoint")
-
 	if valid, err := WebURL(endpoint); err != nil {
 		return valid, ErrNoValidEndpoint
 	}
@@ -53,8 +66,6 @@ func S3Endpoint(endpoint string) (bool, error) {
 }
 
 func RemotePath(remotePath string) (bool, error) {
-	log.Info().Msg("validator - RemotePath")
-
 	if !validRemotePath.MatchString(remotePath) {
 		return false, ErrNoValidS3RemotePath
 	}
@@ -63,8 +74,6 @@ func RemotePath(remotePath string) (bool, error) {
 }
 
 func LocalPath(localMountPoint string) (bool, error) {
-	log.Info().Msg("validator - LocalPath")
-
 	if !validPath.MatchString(localMountPoint) {
 		return false, ErrNoValidPath
 	}

@@ -387,7 +387,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 		select {
 		case <-signalChan:
-			color.Red.Println("==> Exiting...")
+			color.Red.Println("==> Wait a moment, service is exiting...")
 			log.Info().Msg("UpdateTokenLoop interrupt signa!")
 			loop = false
 
@@ -408,5 +408,5 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 	log.Info().Msg("UpdateTokenLoop exit")
 	time.Sleep(1 * time.Second)
-	fmt.Println("==> Bye bye!")
+	fmt.Println("==> Done!")
 }

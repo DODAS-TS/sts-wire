@@ -82,10 +82,13 @@ var (
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if confLog := viper.GetString("instance_name"); logFile == "stderr" && confLog != "" {
+			if confLog := viper.GetString("log"); logFile == "stderr" && confLog != "" {
 				logFile = confLog
 			}
 			if logFile != "stderr" {
+				if valid, err := validator.LogFile(logFile); !valid {
+					panic(err)
+				}
 				logTarget, errLog := os.Create(logFile)
 				if errLog != nil {
 					panic(errLog)
@@ -96,6 +99,7 @@ var (
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}) // nolint:exhaustivestruct
 			}
 
+			log.Info().Str("log file", logFile).Msg("logging")
 			log.Info().Msg("Start sts-wire")
 
 			inputReader := *bufio.NewReader(os.Stdin)
