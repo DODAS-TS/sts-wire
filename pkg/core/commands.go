@@ -65,6 +65,9 @@ var (
 					return errNumArgs
 				}
 				if len(args) == numAcceptedArguments {
+					if validEndpoint, err := validator.S3Endpoint(os.Args[2]); !validEndpoint {
+						panic(err)
+					}
 					if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
 						panic(err)
 					}
@@ -113,8 +116,13 @@ var (
 				localMountPath = os.Args[4]
 			}
 
-			if validLocalPath, err := validator.LocalPath(localMountPath); !validLocalPath {
-				panic(err)
+			if cfgFile != "" {
+				if validEndpoint, err := validator.S3Endpoint(s3Endpoint); !validEndpoint {
+					panic(err)
+				}
+				if validLocalPath, err := validator.LocalPath(localMountPath); !validLocalPath {
+					panic(err)
+				}
 			}
 
 			confDir = "." + instance

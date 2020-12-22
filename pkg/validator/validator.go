@@ -9,9 +9,19 @@ import (
 )
 
 var (
-	ErrNoValidPath = errors.New("no valid path")
-	validPath      = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidPath     = errors.New("no valid path")
+	validPath          = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidEndpoint = errors.New("no valid s3 endpoint")
+	validEndpint       = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
 )
+
+func S3Endpoint(endpoint string) (bool, error) {
+	if !validEndpint.MatchString(endpoint) {
+		return false, ErrNoValidEndpoint
+	}
+
+	return true, nil
+}
 
 func LocalPath(localMountPoint string) (bool, error) {
 	if !validPath.MatchString(localMountPoint) {
