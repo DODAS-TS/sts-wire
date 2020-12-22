@@ -65,7 +65,13 @@ var (
 					return errNumArgs
 				}
 				if len(args) == numAcceptedArguments {
+					if validInstanceName, err := validator.InstanceName(os.Args[1]); !validInstanceName {
+						panic(err)
+					}
 					if validEndpoint, err := validator.S3Endpoint(os.Args[2]); !validEndpoint {
+						panic(err)
+					}
+					if validRemotePath, err := validator.RemotePath(os.Args[3]); !validRemotePath {
 						panic(err)
 					}
 					if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
@@ -117,7 +123,13 @@ var (
 			}
 
 			if cfgFile != "" {
+				if validInstanceName, err := validator.InstanceName(instance); !validInstanceName {
+					panic(err)
+				}
 				if validEndpoint, err := validator.S3Endpoint(s3Endpoint); !validEndpoint {
+					panic(err)
+				}
+				if validRemotePath, err := validator.RemotePath(remote); !validRemotePath {
 					panic(err)
 				}
 				if validLocalPath, err := validator.LocalPath(localMountPath); !validLocalPath {
@@ -169,7 +181,7 @@ var (
 			// Create the TLS Config with the CA pool and enable Client certificate validation
 			cfg := &tls.Config{ // nolint: exhaustivestruct
 				// ClientCAs: caCertPool,
-				InsecureSkipVerify: insecureConn,
+				InsecureSkipVerify: insecureConn, // nolint:gosec
 			}
 			// cfg.BuildNameToCertificate()
 
@@ -186,6 +198,9 @@ var (
 				iamServer = os.Getenv("IAM_SERVER")
 			}
 			log.Info().Str("iamServer", iamServer).Msg("command")
+			if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
+				panic(fmt.Errorf("not a valid IAM server %w", err))
+			}
 
 			clientIAM := InitClientConfig{
 				ConfDir:        confDir,

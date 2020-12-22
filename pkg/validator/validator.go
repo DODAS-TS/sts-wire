@@ -9,15 +9,44 @@ import (
 )
 
 var (
-	ErrNoValidPath     = errors.New("no valid path")
-	validPath          = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
-	ErrNoValidEndpoint = errors.New("no valid s3 endpoint")
-	validEndpint       = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
+	ErrNoValidPath         = errors.New("no valid path")
+	validPath              = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidEndpoint     = errors.New("no valid s3 endpoint")
+	ErrNoValidWebURL       = errors.New("no valid web URL")
+	validWebURL            = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
+	ErrNoValidS3RemotePath = errors.New("no valid s3 remote path")
+	validRemotePath        = regexp.MustCompile(`^/[\w\-_/]+$`)
+	ErrNoValidInstanceName = errors.New("no valid instance name")
+	validInstanceName      = regexp.MustCompile(`^[\w\-_]+$`)
 )
 
+func InstanceName(url string) (bool, error) {
+	if !validInstanceName.MatchString(url) {
+		return false, ErrNoValidInstanceName
+	}
+
+	return true, nil
+}
+
+func WebURL(url string) (bool, error) {
+	if !validWebURL.MatchString(url) {
+		return false, ErrNoValidWebURL
+	}
+
+	return true, nil
+}
+
 func S3Endpoint(endpoint string) (bool, error) {
-	if !validEndpint.MatchString(endpoint) {
-		return false, ErrNoValidEndpoint
+	if valid, err := WebURL(endpoint); err != nil {
+		return valid, ErrNoValidEndpoint
+	}
+
+	return true, nil
+}
+
+func RemotePath(remotePath string) (bool, error) {
+	if !validRemotePath.MatchString(remotePath) {
+		return false, ErrNoValidS3RemotePath
 	}
 
 	return true, nil
