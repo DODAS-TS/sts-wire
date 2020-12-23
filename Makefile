@@ -4,6 +4,8 @@ vendors:
 	go mod vendor
 
 go-bindata:
+	ls
+	pwd
 	go get -u github.com/go-bindata/go-bindata/...
 
 bind-html: go-bindata
