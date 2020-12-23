@@ -33,11 +33,11 @@ bind-rclone-macos:
 	go-bindata -o pkg/rclone/rclone_darwin.go -prefix "data/darwin/" data/darwin/
 	sed -i "" 's/package\ main/package\ rclone/' pkg/rclone/rclone_darwin.go
 
-build: bind-html bind-rclone
+build: vendors bind-html bind-rclone
 	go build -ldflags "-s -w" -o sts-wire_linux
 
-build-windows: bind-html bind-rclone-windows
+build-windows: vendors bind-html bind-rclone-windows
 	env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -o sts-wire_windows.exe -v
 
-build-macos: bind-html bind-rclone-macos
+build-macos: vendors bind-html bind-rclone-macos
 	env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -o sts-wire_osx -v
