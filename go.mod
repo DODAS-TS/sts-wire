@@ -13,7 +13,7 @@ require (
 	github.com/rs/zerolog v1.20.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
-	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
+	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 // indirect
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1
 )
