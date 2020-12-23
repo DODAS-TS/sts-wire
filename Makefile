@@ -6,6 +6,8 @@ vendors:
 go-bindata:
 	ls
 	pwd
+	which go-bindata
+	echo "TEST"
 	go get -u github.com/go-bindata/go-bindata/...
 
 bind-html: go-bindata
