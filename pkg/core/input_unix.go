@@ -1,3 +1,5 @@
+// +build !windows,linux darwin
+
 package core
 
 import (
@@ -47,6 +49,7 @@ func readPassword(fd int) (passwordReader, *unix.Termios, error) {
 
 func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (password *memguard.Enclave, err error) {
 	fmt.Print(question)
+
 	readPasswdFd, termios, errCreateReader := readPassword(syscall.Stdin)
 	if errCreateReader != nil {
 		return nil, fmt.Errorf("get password %w", errCreateReader)
@@ -61,6 +64,7 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 
 	if only4Decription {
 		password = passEnclave.Seal()
+
 		return password, nil
 	}
 

@@ -1,3 +1,5 @@
+// +build windows
+
 package core
 
 import (
@@ -7,8 +9,6 @@ import (
 	"os"
 	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/sys/unix"
 	"golang.org/x/sys/windows"
 
 	"github.com/awnumar/memguard"
@@ -23,14 +23,8 @@ var (
 // passwordReader is an io.Reader that reads from a specific file descriptor.
 type passwordReader int
 
-func (r passwordReader) Read(buf []byte) (int, error) {
-	return unix.Read(int(r), buf)
-}
+func readPassword(fd int) (*os.File, error) {
 
-const ioctlReadTermios = unix.TIOCGETA
-const ioctlWriteTermios = unix.TIOCSETA
-
-func readPassword(fd int) (*io.Read, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
 		return nil, err
@@ -57,7 +51,8 @@ func readPassword(fd int) (*io.Read, error) {
 
 func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (password *memguard.Enclave, err error) {
 	fmt.Print(question)
-	readPasswdFd, termios, errCreateReader := readPassword(syscall.Stdin)
+
+	readPasswdFd, errCreateReader := readPassword(int(syscall.Stdin))
 	if errCreateReader != nil {
 		return nil, fmt.Errorf("get password %w", errCreateReader)
 	}
@@ -68,9 +63,10 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 	if errEclBuf != nil {
 		return nil, fmt.Errorf("get password enclave %w", errEclBuf)
 	}
-	password = passEnclave.Seal()
 
 	if only4Decription {
+		password = passEnclave.Seal()
+
 		return password, nil
 	}
 
@@ -78,12 +74,13 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 	passMsg := fmt.Sprintf("%s Please, insert the password again: ", color.Yellow.Sprint("==>"))
 	fmt.Print(passMsg)
 
-	bytePassword2, err := terminal.ReadPassword(syscall.Stdin)
+	passEnclave2, err := memguard.NewBufferFromReaderUntil(readPasswdFd, '\n')
 	if err != nil {
 		return nil, fmt.Errorf("get password check %w", err)
 	}
 
-	if bytes.Compare(passEnclave.Bytes(), bytePassword2) == 0 {
+	if bytes.Equal(passEnclave.Bytes(), passEnclave2.Bytes()) {
+		password = passEnclave.Seal()
 		return password, nil
 	}
 
