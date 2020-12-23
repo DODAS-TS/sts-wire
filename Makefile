@@ -12,8 +12,7 @@ go-bindata-download:
 .PHONY: bind-html
 bind-html: go-bindata-download
 	@echo "bindata html"
-	@$(shell go-bindata -o pkg/core/assets.go data/html/)
-	@$(shell sed -i "" "s/package\ main/package\ core/" pkg/core/assets.go)
+	@$(shell go-bindata -o pkg/core/assets.go data/html/ && sed -i "" "s/package\ main/package\ core/" pkg/core/assets.go)
 
 .PHONY: bind-rclone
 bind-rclone: go-bindata-download
