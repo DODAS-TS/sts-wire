@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/minio/minio-go/v6/pkg/credentials"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/rs/zerolog/log"
 )
 
 type RefreshTokenStruct struct {
@@ -81,7 +83,8 @@ type WebIdentityResult struct {
 
 // Retrieve credentials.
 func (t *IAMProvider) Retrieve() (credentials.Value, error) {
-	//contentType := "text/html"
+	log.Info().Msg("IAM - Retrieve")
+
 	body := url.Values{}
 	body.Set("Action", "AssumeRoleWithWebIdentity")
 	body.Set("Version", "2011-06-15")
@@ -90,44 +93,53 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 	// TODO: parameter for duration
 	body.Set("DurationSeconds", "900")
 
-	// fmt.Println(t.stsEndpoint, body.Encode())
+	log.Info().Str("stsEndpoint", t.StsEndpoint).Str("body", body.Encode()).Msg("IAM")
 
-	url, err := url.Parse(t.StsEndpoint + "?" + body.Encode())
+	url, err := url.Parse(
+		strings.Join(
+			[]string{t.StsEndpoint, "?", body.Encode()},
+			"",
+		),
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	req := http.Request{
+	log.Info().Str("url", url.String()).Msg("IAM")
+	req := http.Request{ // nolint:exhaustivestruct
 		Method: "POST",
 		URL:    url,
 	}
 
 	// TODO: retrieve token with https POST with t.httpClient
-	r, err := t.HTTPClient.Do(&req)
-	if err != nil {
-		fmt.Println(err)
+	r, errDo := t.HTTPClient.Do(&req)
+	if errDo != nil {
+		log.Err(errDo).Msg("IAM")
 
-		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errDo)
 	}
-	defer r.Body.Close()
-	// fmt.Println(r.StatusCode, r.Status)
+	// defer r.Body.Close()
+	fmt.Println(r.StatusCode, r.Status)
+
+	rbody, errRead := ioutil.ReadAll(r.Body)
+	if errRead != nil {
+		log.Err(errRead).Msg("IAM")
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errRead)
+	}
+
+	log.Info().Str("body", string(rbody)).Msg("IAM")
 
 	t.Creds = &AssumeRoleWithWebIdentityResponse{}
 
-	rbody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Printf("error: %v", err)
+	errUnmarshall := xml.Unmarshal(rbody, t.Creds)
+	if errUnmarshall != nil {
+		log.Err(errUnmarshall).Msg("IAM")
 
-		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errUnmarshall)
 	}
-	// fmt.Println(string(rbody))
 
-	err = xml.Unmarshal(rbody, t.Creds)
-	if err != nil {
-		fmt.Printf("error: %v", err)
-
-		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", err)
-	}
+	log.Info().Str("credential", "acquired").Msg("IAM")
 
 	return credentials.Value{ // nolint:exhaustivestruct
 		AccessKeyID:     t.Creds.Result.Credentials.AccessKey,
