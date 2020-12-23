@@ -16,27 +16,26 @@ bind-html: go-bindata-download
 
 .PHONY: bind-rclone
 bind-rclone: go-bindata-download
-	@echo "download rclone linux"
-	@$(shell mkdir -p data/linux)
-	@$(shell wget -q -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone)
 	@echo "bindata rclone linux"
-	@$(shell go-bindata -o pkg/rclone/rclone_linux.go -prefix data/linux/ data/linux/ && sed -i "" "s/package\ main/package\ rclone/" pkg/rclone/rclone_linux.go)
+	@$(shell mkdir -p data/linux && \
+			 wget -q -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone && \
+			 go-bindata -o pkg/rclone/rclone_linux.go -prefix data/linux/ data/linux/ && \
+			 sed -i "" "s/package\ main/package\ rclone/" pkg/rclone/rclone_linux.go)
 
 .PHONY: bind-rclone-windows
 bind-rclone-windows: go-bindata-download
-	@echo "download rclone windows"
+	@echo "bindata rclone windows"
 	@$(shell mkdir -p data/windows)
 	@$(shell wget -q -L -O data/windows/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone.exe)
-	@echo "bindata rclone windows"
 	@$(shell go-bindata -o pkg/rclone/rclone_windows.go -prefix data/windows/ data/windows/ && sed -i "" "s/package\ main/package\ rclone/" pkg/rclone/rclone_windows.go)
 
 .PHONY: bind-rclone-macos
 bind-rclone-macos: go-bindata-download
-	@echo "download rclone macos"
-	@$(shell mkdir -p data/darwin)
-	@$(shell wget -q -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone_osx)
 	@echo "bindata rclone macos"
-	@$(shell go-bindata -o pkg/rclone/rclone_darwin.go -prefix "data/darwin/" data/darwin/ && sed -i "" "s/package\ main/package\ rclone/" pkg/rclone/rclone_darwin.go)
+	@$(shell mkdir -p data/darwin && \
+		wget -q -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone_osx && \
+		go-bindata -o pkg/rclone/rclone_darwin.go -prefix "data/darwin/" data/darwin/ && \
+		sed -i "" "s/package\ main/package\ rclone/" pkg/rclone/rclone_darwin.go)
 
 .PHONY: build
 build: bind-html bind-rclone vendors
