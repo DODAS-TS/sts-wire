@@ -22,7 +22,7 @@ go-bindata-download:
 bind-html: go-bindata-download
 	@echo "bindata html"
 	@$(GOBINDATAEXE -o ./pkg/core/assets.go data/html/)
-	@$(SEDCMD "s/package\\ main/package\\ core/" ./pkg/core/assets.go)
+	@$(SEDCMD "s/package\ main/package\ core/" ./pkg/core/assets.go)
 
 .PHONY: bind-rclone
 bind-rclone: go-bindata-download
