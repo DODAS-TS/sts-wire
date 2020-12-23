@@ -118,8 +118,9 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errDo)
 	}
-	// defer r.Body.Close()
-	fmt.Println(r.StatusCode, r.Status)
+	defer r.Body.Close()
+
+	log.Info().Int("statusCode", r.StatusCode).Str("status", r.Status).Msg("IAM")
 
 	rbody, errRead := ioutil.ReadAll(r.Body)
 	if errRead != nil {
