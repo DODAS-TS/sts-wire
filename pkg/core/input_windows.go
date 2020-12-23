@@ -1,5 +1,3 @@
-// +build windows
-
 package core
 
 import (
@@ -81,9 +79,11 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 
 	if bytes.Equal(passEnclave.Bytes(), passEnclave2.Bytes()) {
 		password = passEnclave.Seal()
+
 		return password, nil
 	}
 
 	log.Err(errPasswordMismatch).Msg("GetPassword")
+
 	return nil, errPasswordMismatch
 }
