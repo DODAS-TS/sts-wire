@@ -37,12 +37,13 @@ bind-rclone-macos: go-bindata
 
 build: bind-html bind-rclone vendors
 	@echo "build sts-wire linux"
-	@$(shell go build -ldflags "-s -w" -o sts-wire_linux)
+	@$(shell go build -ldflags "-s -w" -mod vendor -v -o sts-wire_linux)
 
 build-windows: bind-html bind-rclone-windows vendors
 	@echo "build sts-wire windows"
-	@$(shell env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -o sts-wire_windows.exe -v)
+	@$(shell env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -v -o sts-wire_windows.exe)
 
 build-macos: bind-html bind-rclone-macos vendors
 	@echo "build sts-wire macOs"
-	@$(shell env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -o sts-wire_osx -v)
+	@$(shell env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w" -mod vendor -v -o sts-wire_osx)
+	ls -l .
