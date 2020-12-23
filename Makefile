@@ -11,14 +11,14 @@ go-bindata:
 	pwd
 	@echo "GOPATH $(GOPATH)"
 	@echo "BINDATA_EXE $(BINDATA_EXE)"
-	echo "TEST"
-	go get -u github.com/go-bindata/go-bindata/...
+	@go get -u github.com/go-bindata/go-bindata/...
 	ls $(GOPATH)
 	ls $(GOBIN)
 
 bind-html: go-bindata
 	@echo "bindata html"
 	$(BINDATA_EXE) -o pkg/core/assets.go data/html/
+	ls pkg/core/
 	@sed -i "" 's/package\ main/package\ core/' pkg/core/assets.go
 
 bind-rclone: go-bindata
