@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -13,10 +12,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/rs/zerolog/log"
 )
-
-type GetInputWrapper struct {
-	Scanner bufio.Reader
-}
 
 var (
 	errPasswordMismatch = errors.New("The two password inserted are not the same.")
@@ -42,6 +37,7 @@ func readPassword(fd int) (passwordReader, *unix.Termios, error) {
 	newState.Lflag &^= unix.ECHO
 	newState.Lflag |= unix.ICANON | unix.ISIG
 	newState.Iflag |= unix.ICRNL
+
 	if err := unix.IoctlSetTermios(fd, ioctlWriteTermios, &newState); err != nil {
 		return -1, nil, fmt.Errorf("readPassword %w", err)
 	}

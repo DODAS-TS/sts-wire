@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -16,10 +15,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/rs/zerolog/log"
 )
-
-type GetInputWrapper struct {
-	Scanner bufio.Reader
-}
 
 var (
 	errPasswordMismatch = errors.New("The two password inserted are not the same.")

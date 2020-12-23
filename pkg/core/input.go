@@ -1,11 +1,16 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
 	"strings"
 
 	"github.com/gookit/color"
 )
+
+type GetInputWrapper struct {
+	Scanner bufio.Reader
+}
 
 func (t *GetInputWrapper) GetInputString(question string, def string) (text string, err error) {
 	if def != "" {
