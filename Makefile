@@ -6,9 +6,12 @@ vendors:
 go-bindata:
 	ls
 	pwd
-	which go-bindata
+	@echo "GOPATH $(GOPATH)"
+	@echo "GOBIN $(GOBIN)"
 	echo "TEST"
 	go get -u github.com/go-bindata/go-bindata/...
+	ls $(GOPATH)
+	ls $(GOBIN)
 
 bind-html: go-bindata
 	go-bindata -o pkg/core/assets.go data/html/
