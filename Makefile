@@ -12,7 +12,7 @@ vendors:
 	go mod vendor
 
 go-bind-data:
-	go get github.com/go-bindata/go-bindata
+	go get -u github.com/go-bindata/go-bindata
 
 bind-html: go-bind-data
 	go-bindata -o pkg/core/assets.go data/html/
