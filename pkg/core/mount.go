@@ -45,18 +45,18 @@ func PrepareRclone() error { // nolint: funlen
 		return errCacheDir
 	}
 
-	log.Info().Str("basedir", baseDir).Msg("PrepareRclone")
+	log.Info().Str("basedir", baseDir).Msg("rclone")
 
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
 		return errExePath
 	}
 
-	log.Info().Str("rcloneFile", rcloneFile).Msg("PrepareRclone")
-	log.Info().Msg("PrepareRclone - get asset data")
+	log.Info().Str("rcloneFile", rcloneFile).Msg("rclone")
+	log.Info().Msg("rclone - get asset data")
 
-	data, errAsset := rclone.Asset("data/darwin/rclone_osx")
-	log.Info().Int("assetLen", len(data)).Msg("core darwin")
+	data, errAsset := rclone.Asset("rclone")
+	log.Info().Int("assetLen", len(data)).Msg("rclone")
 
 	if errAsset != nil {
 		log.Err(errAsset).Msg("Rclone asset for Darwin not found")
@@ -64,7 +64,7 @@ func PrepareRclone() error { // nolint: funlen
 		return fmt.Errorf("prepare rclone %w", errAsset)
 	}
 
-	log.Info().Msg("PrepareRclone - create executable")
+	log.Info().Msg("rclone - create executable")
 
 	errMkdir := os.MkdirAll(baseDir, os.ModePerm)
 	if errMkdir != nil && !os.IsExist(errMkdir) {
@@ -83,7 +83,7 @@ func PrepareRclone() error { // nolint: funlen
 	buff := bytes.NewReader(data)
 	writtenData, errWrite := io.Copy(rcloneExeFile, buff)
 
-	log.Info().Int64("writtenData", writtenData).Msg("core darwin")
+	log.Info().Int64("writtenData", writtenData).Msg("rclone")
 
 	if errWrite != nil {
 		log.Err(errWrite).Msg("Cannot write rclone executable in cache dir")
@@ -93,7 +93,7 @@ func PrepareRclone() error { // nolint: funlen
 
 	rcloneExeFile.Close()
 
-	log.Info().Msg("PrepareRclone - change executable mod")
+	log.Info().Msg("rclone - change executable mod")
 
 	errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
 	if errChmod != nil {
@@ -106,20 +106,24 @@ func PrepareRclone() error { // nolint: funlen
 }
 
 func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, error) { // nolint: funlen
-	log.Info().Msg("Prepare Rclone")
+	log.Info().Str("action", "prepare rclone").Msg("rclone - mount")
+
 	errPrepare := PrepareRclone()
 	if errPrepare != nil {
-		log.Err(errPrepare).Msg("Cannot prepare Rclone")
+		log.Err(errPrepare).Msg("rclone - mount")
+
 		return nil, errPrepare
 	}
 
-	log.Info().Msg("Get Rclone file path")
+	log.Info().Str("action", "get file path").Msg("rclone - mount")
+
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
 		return nil, errExePath
 	}
 
-	log.Info().Msg("Make local dir")
+	log.Info().Str("action", "make local dir").Msg("rclone - mount")
+
 	_, errLocalPath := os.Stat(localPath)
 	if os.IsNotExist(errLocalPath) {
 		errMkdir := os.MkdirAll(localPath, os.ModePerm)
@@ -129,23 +133,26 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	}
 
 	conf := fmt.Sprintf("%s:%s", instance, remotePath)
-	log.Info().Str("conf", conf).Msg("Prepare mounting points")
+	log.Info().Str("action", "prepare mounting points").Msg("rclone - mount")
 
 	configPathAbs, errConfigPath := filepath.Abs(path.Join(configPath, "/rclone.conf"))
 	if errConfigPath != nil {
 		log.Err(errConfigPath).Msg("server")
+
 		return nil, errConfigPath
 	}
 
 	logPath, errLogPath := filepath.Abs(path.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
 		log.Err(errLogPath).Msg("server")
+
 		return nil, errLogPath
 	}
 
 	localPathAbs, errLocalPath := filepath.Abs(localPath)
 	if errLocalPath != nil {
 		log.Err(errLocalPath).Msg("server")
+
 		return nil, errLocalPath
 	}
 
@@ -164,7 +171,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		"--no-modtime",
 		conf,
 		localPathAbs,
-	}, " ")).Msg("Prepare rclone call")
+	}, " ")).Msg("rclone - mount")
 	rcloneCmd := exec.Command(
 		rcloneFile,
 		"--config",
@@ -182,7 +189,8 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		localPathAbs,
 	)
 
-	log.Info().Msg("Start rclone")
+	log.Info().Str("action", "start rclone").Msg("rclone - mount")
+
 	errStart := rcloneCmd.Start()
 	if errStart != nil {
 		panic(errStart)
