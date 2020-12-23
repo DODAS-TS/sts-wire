@@ -1,4 +1,5 @@
-BINDATA_EXE=${GOPATH}/bin/go-bindata
+GOPATH=$(shell go env GOPATH)
+BINDATA_EXE=$(GOPATH)/bin/go-bindata
 
 all: build build-windows build-macos
 
@@ -8,6 +9,7 @@ vendors:
 go-bindata:
 	ls
 	pwd
+	@echo "GOPATH $(GOPATH)"
 	@echo "BINDATA_EXE $(BINDATA_EXE)"
 	echo "TEST"
 	go get -u github.com/go-bindata/go-bindata/...
