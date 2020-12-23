@@ -62,6 +62,10 @@ func S3Endpoint(endpoint string) (bool, error) {
 		return valid, ErrNoValidEndpoint
 	}
 
+	if endpoint[len(endpoint)-1] != '/' {
+		return false, ErrNoValidEndpoint
+	}
+
 	return true, nil
 }
 
