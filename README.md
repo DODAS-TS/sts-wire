@@ -20,7 +20,7 @@ To compile from the sources you need a `Go` version that supports `Go modules` (
 
 ```bash
 # Linux
-make build
+make build-linux
 # Windows
 make build-windows
 # MacOS

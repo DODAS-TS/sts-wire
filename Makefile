@@ -8,8 +8,8 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 .PHONY: all
-.NOTPARALLEL: build build-windows build-macos bind-rclone bind-rclone-windows bind-rclone-macos
-all: clean build build-windows build-macos
+.NOTPARALLEL: build-linux build-windows build-macos bind-rclone bind-rclone-windows bind-rclone-macos
+all: clean build-linux build-windows build-macos
 
 .PHONY: go-bindata-download
 go-bindata-download:
@@ -55,8 +55,8 @@ bind-rclone-macos: go-bindata-download
 	@echo "==> fix macos package"
 	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_darwin.go
 
-.PHONY: build
-build: bind-html bind-rclone
+.PHONY: build-linux
+build-linux: bind-html bind-rclone
 	@echo "==> build sts-wire linux"
 	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_linux
 
