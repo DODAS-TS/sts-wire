@@ -58,7 +58,7 @@ bind-rclone-macos: go-bindata-download
 .PHONY: build
 build: bind-html bind-rclone
 	@echo "==> build sts-wire linux"
-	@go build -ldflags "-s -w" -v -o sts-wire_linux
+	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_linux
 
 .PHONY: build-windows
 build-windows: bind-html bind-rclone-windows
