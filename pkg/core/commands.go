@@ -170,9 +170,26 @@ var (
 			// 	}
 			// }
 
+			iamcURL := "localhost"
+			iamcPort := 3128
+
+			if newIamcURL := viper.GetString("IAMAuthURL"); newIamcURL != "" {
+				if valid, err := validator.WebURL(newIamcURL); !valid || err != nil {
+					panic(err)
+				}
+				iamcURL = newIamcURL
+			}
+
+			if newIamcPort := viper.GetInt("IAMAuthURLPort"); newIamcPort != 0 {
+				iamcPort = newIamcPort
+			}
+
+			log.Info().Str("iamcURL", iamcURL).Msg("command")
+			log.Info().Int("iamcPort", iamcPort).Msg("command")
+
 			clientConfig := IAMClientConfig{ // nolint:exhaustivestruct
-				Host:       "localhost",
-				Port:       3128,
+				Host:       iamcURL,
+				Port:       iamcPort,
 				ClientName: "oidc-client",
 			}
 
