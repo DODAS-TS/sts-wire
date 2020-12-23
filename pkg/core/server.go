@@ -152,7 +152,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
 			//w.Write([]byte(msg))
-			html, errAsset := Asset("data/html/mountingPage.html")
+			html, errAsset := Asset("html/mountingPage.html")
 			if errAsset != nil {
 				http.Error(w, errAsset.Error(), http.StatusInternalServerError)
 				return

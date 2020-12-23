@@ -26,9 +26,6 @@ func (r passwordReader) Read(buf []byte) (int, error) {
 	return unix.Read(int(r), buf)
 }
 
-const ioctlReadTermios = unix.TIOCGETA
-const ioctlWriteTermios = unix.TIOCSETA
-
 func readPassword(fd int) (passwordReader, *unix.Termios, error) {
 	termios, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
 	if err != nil {
