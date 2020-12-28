@@ -1,6 +1,6 @@
 module github.com/DODAS-TS/sts-wire
 
-go 1.15
+go 1.16
 
 require (
 	github.com/awnumar/memguard v0.22.2

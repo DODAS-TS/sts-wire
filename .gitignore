@@ -130,7 +130,4 @@ mountedVolume/*
 # local configs
 *.yml
 
-# Assets
-data/*
-!data/html/
-pkg/rclone/*.go
+pkg/rclone/data/**

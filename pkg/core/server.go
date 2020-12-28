@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -152,11 +153,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
 			//w.Write([]byte(msg))
-			html, errAsset := Asset("html/mountingPage.html")
-			if errAsset != nil {
-				http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-				return
-			}
+
+			//go:embed "data/html/mountingPage.html"
+			var html []byte
 
 			_, errWrite := w.Write(html)
 			if errWrite != nil {

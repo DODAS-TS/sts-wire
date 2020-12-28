@@ -8,65 +8,42 @@ ifeq ($(UNAME_S),Darwin)
 endif
 
 .PHONY: all
-.NOTPARALLEL: build-linux build-windows build-macos bind-rclone bind-rclone-windows bind-rclone-macos
+.NOTPARALLEL: build-linux build-windows build-macos download-rclone download-rclone-windows download-rclone-macos
 all: clean build-linux build-windows build-macos
 
-.PHONY: go-bindata-download
-go-bindata-download:
-	@go get -u github.com/go-bindata/go-bindata/...
-
-.PHONY: bind-html
-bind-html: go-bindata-download
-	@echo "==> bindata html"
-	${GOBINDATAEXE} -o pkg/core/assets.go -prefix data/ data/html/
-	@echo "==> fix package"
-	${SEDCMD} "s/package\ main/package\ core/g" pkg/core/assets.go
-
-.PHONY: bind-rclone
-bind-rclone: go-bindata-download
-	@echo "==> bindata rclone linux"
-	@mkdir -p data/linux
+.PHONY: download-rclone
+download-rclone: 
 	@echo "==> download rclone linux"
-	@wget -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone
-	@echo "==> bindata rclone linux executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_linux.go -prefix data/linux/ data/linux/
-	@echo "==> fix linux package"
-	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_linux.go
+	@mkdir -p pkg/rclone/data/linux
+	@echo "==> download rclone linux"
+	@wget -L -O pkg/rclone/data/linux/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone
 
-.PHONY: bind-rclone-windows
-bind-rclone-windows: go-bindata-download
-	@echo "==> bindata rclone windows"
-	@mkdir -p data/windows
+.PHONY: download-rclone-windows
+download-rclone-windows: 
 	@echo "==> download rclone windows"
-	@wget -L -O data/windows/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone.exe
-	@echo "==> bindata rclone windows executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_windows.go -prefix data/windows/ data/windows/
-	@echo "==> fix windows package"
-	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_windows.go
+	@mkdir -p pkg/rclone/data/windows
+	@echo "==> download rclone windows"
+	@wget -L -O pkg/rclone/data/windows/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone.exe
 
-.PHONY: bind-rclone-macos
-bind-rclone-macos: go-bindata-download
-	@echo "==> bindata rclone macos"
-	@mkdir -p data/darwin
+.PHONY: download-rclone-macos
+download-rclone-macos: 
 	@echo "==> download rclone macos"
-	@wget -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone_osx
-	@echo "==> bindata rclone macos executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_darwin.go -prefix data/darwin/ data/darwin/
-	@echo "==> fix macos package"
-	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_darwin.go
+	@mkdir -p pkg/rclone/data/darwin
+	@echo "==> download rclone macos"
+	@wget -L -O pkg/rclone/data/darwin/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone_osx
 
 .PHONY: build-linux
-build-linux: bind-html bind-rclone
+build-linux:  download-rclone
 	@echo "==> build sts-wire linux"
 	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_linux
 
 .PHONY: build-windows
-build-windows: bind-html bind-rclone-windows
+build-windows:  download-rclone-windows
 	@echo "==> build sts-wire windows"
 	@env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_windows.exe
 
 .PHONY: build-macos
-build-macos: bind-html bind-rclone-macos
+build-macos:  download-rclone-macos
 	@echo "==> build sts-wire macOs"
 	@env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_osx
 
@@ -74,6 +51,4 @@ build-macos: bind-html bind-rclone-macos
 clean:
 	@echo "==> clean environment"
 	@rm -f sts-wire*
-	@rm -f pkg/core/assets.go
-	@rm -f pkg/rclone/*.go
-	@rm -rf data/{darwin,linux,windows}
+	@rm -rf pkg/rclone/data/{darwin,linux,windows}

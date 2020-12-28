@@ -55,14 +55,8 @@ func PrepareRclone() error { // nolint: funlen
 	log.Info().Str("rcloneFile", rcloneFile).Msg("rclone")
 	log.Info().Msg("rclone - get asset data")
 
-	data, errAsset := rclone.Asset("rclone")
+	var data []byte = rclone.Executable
 	log.Info().Int("assetLen", len(data)).Msg("rclone")
-
-	if errAsset != nil {
-		log.Err(errAsset).Msg("Rclone asset for Darwin not found")
-
-		return fmt.Errorf("prepare rclone %w", errAsset)
-	}
 
 	log.Info().Msg("rclone - create executable")
 
