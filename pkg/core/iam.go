@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/minio/minio-go/v6/pkg/credentials"
@@ -47,10 +48,11 @@ func RandomState() string {
 
 // IAMProvider credential provider for oidc
 type IAMProvider struct {
-	StsEndpoint string
-	HTTPClient  *http.Client
-	Token       string
-	Creds       *AssumeRoleWithWebIdentityResponse
+	StsEndpoint       string
+	HTTPClient        *http.Client
+	Token             string
+	Creds             *AssumeRoleWithWebIdentityResponse
+	RefreshTokenRenew int
 }
 
 // AssumeRoleWithWebIdentityResponse the struct of the STS WebIdentity call response.
@@ -89,40 +91,38 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 	body.Set("Action", "AssumeRoleWithWebIdentity")
 	body.Set("Version", "2011-06-15")
 	body.Set("WebIdentityToken", t.Token)
-
-	// TODO: parameter for duration
-	body.Set("DurationSeconds", "900")
+	body.Set("DurationSeconds", strconv.Itoa(t.RefreshTokenRenew*60))
 
 	log.Info().Str("stsEndpoint", t.StsEndpoint).Str("body", body.Encode()).Msg("IAM")
 
-	url, err := url.Parse(
+	url, errParse := url.Parse(
 		strings.Join(
 			[]string{t.StsEndpoint, "?", body.Encode()},
 			"",
 		),
 	)
-	if err != nil {
-		panic(err)
+	if errParse != nil {
+		panic(errParse)
 	}
 
 	log.Info().Str("url", url.String()).Msg("IAM")
+
 	req := http.Request{ // nolint:exhaustivestruct
 		Method: "POST",
 		URL:    url,
 	}
 
-	// TODO: retrieve token with https POST with t.httpClient
-	r, errDo := t.HTTPClient.Do(&req)
+	resp, errDo := t.HTTPClient.Do(&req)
 	if errDo != nil {
 		log.Err(errDo).Msg("IAM")
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errDo)
 	}
-	defer r.Body.Close()
+	defer resp.Body.Close()
 
-	log.Info().Int("statusCode", r.StatusCode).Str("status", r.Status).Msg("IAM")
+	log.Info().Int("statusCode", resp.StatusCode).Str("status", resp.Status).Msg("IAM")
 
-	rbody, errRead := ioutil.ReadAll(r.Body)
+	rbody, errRead := ioutil.ReadAll(resp.Body)
 	if errRead != nil {
 		log.Err(errRead).Msg("IAM")
 
