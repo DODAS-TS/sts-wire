@@ -1,6 +1,6 @@
 package template
 
-// ClientTemplate ..
+// ClientTemplate used to compose client oauth2 request
 const ClientTemplate = `{
 	"redirect_uris": [
 	  "http://{{ .Host }}:{{ .Port }}/oauth2/callback"
@@ -20,7 +20,7 @@ const ClientTemplate = `{
 	]
   }`
 
-// RCloneTemplate ..
+// RCloneTemplate used for rclone mounting configuration
 const RCloneTemplate = `
 [{{ .Instance }}]
 type = s3
