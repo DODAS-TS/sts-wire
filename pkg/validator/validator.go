@@ -8,21 +8,34 @@ import (
 	"regexp"
 )
 
-var (
-	ErrNoValidFile         = errors.New("no valid file")
-	validFile              = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
-	ErrNoValidLogFile      = errors.New("no valid log file")
-	validLogFile           = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(.log)$`)
-	ErrNoValidPath         = errors.New("no valid path")
-	validPath              = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
-	ErrNoValidEndpoint     = errors.New("no valid s3 endpoint")
-	ErrNoValidWebURL       = errors.New("no valid web URL")
-	validWebURL            = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
-	ErrNoValidS3RemotePath = errors.New("no valid s3 remote path")
-	validRemotePath        = regexp.MustCompile(`^/[\w\-_/]+$`)
-	ErrNoValidInstanceName = errors.New("no valid instance name")
-	validInstanceName      = regexp.MustCompile(`^[\w\-_]+$`)
+const (
+	minRefreshTokenDuration = 15
 )
+
+var (
+	ErrNoValidFile                  = errors.New("no valid file")
+	validFile                       = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidLogFile               = errors.New("no valid log file")
+	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(.log)$`)
+	ErrNoValidPath                  = errors.New("no valid path")
+	validPath                       = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
+	ErrNoValidEndpoint              = errors.New("no valid s3 endpoint")
+	ErrNoValidWebURL                = errors.New("no valid web URL")
+	validWebURL                     = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
+	ErrNoValidS3RemotePath          = errors.New("no valid s3 remote path")
+	validRemotePath                 = regexp.MustCompile(`^/[\w\-_/]+$`)
+	ErrNoValidInstanceName          = errors.New("no valid instance name")
+	validInstanceName               = regexp.MustCompile(`^[\w\-_]+$`)
+	ErrNoValidRefreshTokenRenewTime = errors.New("no valid refresh token time duration: min 15min")
+)
+
+func RefreshTokenRenew(minutes int) (bool, error) {
+	if minutes < minRefreshTokenDuration {
+		return false, ErrNoValidRefreshTokenRenewTime
+	}
+
+	return true, nil
+}
 
 func LogFile(logFilePath string) (bool, error) {
 	if !validFile.MatchString(logFilePath) {
@@ -62,9 +75,9 @@ func S3Endpoint(endpoint string) (bool, error) {
 		return valid, ErrNoValidEndpoint
 	}
 
-	if endpoint[len(endpoint)-1] != '/' {
-		return false, ErrNoValidEndpoint
-	}
+	// if endpoint[len(endpoint)-1] != '/' {
+	// 	return false, ErrNoValidEndpoint
+	// }
 
 	return true, nil
 }
