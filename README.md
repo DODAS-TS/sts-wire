@@ -128,7 +128,7 @@ Eventually, if everything went well, on your browser you will be prompted with a
 Volume mounted, you can now close this tab. 
 ```
 
-The volume will stay mounted untill you exit the running sts-wire process with Control-C
+The volume will stay mounted untill you exit the running *sts-wire* process with `Ctrl+c`
 ## Contributing
 
 If you want to contribute:
