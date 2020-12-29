@@ -106,6 +106,7 @@ IAMAuthURLPort: 3128
 log: ./logFile.log
 noPassword: false
 refreshTokenRenew: 10
+insecureConn: false
 ```
 
 ### Launch the program
