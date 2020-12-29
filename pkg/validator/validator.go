@@ -29,6 +29,7 @@ var (
 	ErrNoValidRefreshTokenRenewTime = errors.New("no valid refresh token time duration: min 15min")
 )
 
+// RefreshTokenRenew checks if the number of minutes are valid: minimum is 15min.
 func RefreshTokenRenew(minutes int) (bool, error) {
 	if minutes < minRefreshTokenDuration {
 		return false, ErrNoValidRefreshTokenRenewTime
@@ -37,6 +38,7 @@ func RefreshTokenRenew(minutes int) (bool, error) {
 	return true, nil
 }
 
+// LogFile checks if the path indicated for the log file is valid.
 func LogFile(logFilePath string) (bool, error) {
 	if !validFile.MatchString(logFilePath) {
 		return false, ErrNoValidFile
@@ -54,6 +56,7 @@ func LogFile(logFilePath string) (bool, error) {
 	return true, nil
 }
 
+// InstanceName checks if the user instance name is valid.
 func InstanceName(url string) (bool, error) {
 	if !validInstanceName.MatchString(url) {
 		return false, ErrNoValidInstanceName
@@ -62,6 +65,7 @@ func InstanceName(url string) (bool, error) {
 	return true, nil
 }
 
+// WebURL checks if the given URL is a valid Web URL: http://example.com:port
 func WebURL(url string) (bool, error) {
 	if !validWebURL.MatchString(url) {
 		return false, ErrNoValidWebURL
@@ -70,11 +74,14 @@ func WebURL(url string) (bool, error) {
 	return true, nil
 }
 
+// S3Endpoint checks if the given endpoint is a valid s3 endpoint.
 func S3Endpoint(endpoint string) (bool, error) {
 	if valid, err := WebURL(endpoint); err != nil {
 		return valid, ErrNoValidEndpoint
 	}
 
+	// The ending slash is not required
+	// reference: https://github.com/minio/minio/blob/master/docs/sts/web-identity.md#sample-post-request
 	// if endpoint[len(endpoint)-1] != '/' {
 	// 	return false, ErrNoValidEndpoint
 	// }
@@ -82,6 +89,7 @@ func S3Endpoint(endpoint string) (bool, error) {
 	return true, nil
 }
 
+// RemotePath checks if the remote path is valid (a valid bucket path: /something...).
 func RemotePath(remotePath string) (bool, error) {
 	if !validRemotePath.MatchString(remotePath) {
 		return false, ErrNoValidS3RemotePath
@@ -90,6 +98,7 @@ func RemotePath(remotePath string) (bool, error) {
 	return true, nil
 }
 
+// LocalPath verify if the path indicated could be a proper mountpoint.
 func LocalPath(localMountPoint string) (bool, error) {
 	if !validPath.MatchString(localMountPoint) {
 		return false, ErrNoValidPath
