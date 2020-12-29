@@ -193,6 +193,16 @@ var (
 				ClientName: "oidc-client",
 			}
 
+			if newRefreshTokenRenew := viper.GetInt("refreshTokenRenew"); newRefreshTokenRenew != 0 && refreshTokenRenew == 15 {
+				refreshTokenRenew = newRefreshTokenRenew
+			}
+
+			if valid, errRefreshToken := validator.RefreshTokenRenew(refreshTokenRenew); errRefreshToken != nil || !valid {
+				panic(errRefreshToken)
+			}
+
+			log.Info().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
+
 			// Create a CA certificate pool and add cert.pem to it
 			// caCert, err := ioutil.ReadFile("MINIO.pem")
 			// if err != nil {
@@ -247,10 +257,6 @@ var (
 				clientResponse.ClientSecret = os.Getenv("IAM_CLIENT_SECRET")
 			}
 
-			// fmt.Println(clientResponse.Endpoint)
-
-			log.Info().Int("refreshTokenRenew", refreshTokenRenew).Msg("commands")
-
 			server := Server{
 				Client:            clientIAM,
 				Instance:          instance,
@@ -283,7 +289,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", "stderr", "where the log has to write, a file path or stderr")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConnection", true, "check the http connection certificate")
-	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 10, "time span to renew the refresh token in minutes")
+	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15, "time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 
 	errFlag := viper.BindPFlag("insecureConnection", rootCmd.PersistentFlags().Lookup("insecureConnection"))
