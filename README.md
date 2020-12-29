@@ -32,6 +32,9 @@ chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin
 ```
 
+- [Go to How to use](#How-to-use)
+- [Go to Launch the program](#Launch-the-program)
+
 ### Windows
 
 Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_windows)
