@@ -96,6 +96,12 @@ s3_endpoint: http://localhost:9000
 rclone_remote_path: /test
 local_mount_point: ./my_local_mountpoint
 IAM_Server: https://my.iam.server.com
+# Other useful options
+IAMAuthURL: http://localhost
+IAMAuthURLPort: 3128
+log: ./logFile.log
+noPassword: false
+refreshTokenRenew: 10
 ```
 
 ### Launch the program
@@ -108,6 +114,7 @@ IAM_SERVER="https://my.iam.server.com" ./sts-wire_linux myMinio https://myserver
 # Using a config file name myConfig.yml
 ./sts-wire_linux --config myConfig.yml
 ```
+> **Note:** the IAM server is overwritten using the `IAM_SERVER` environment variable
 
 
 After that, you have to follow all the instructions and providing a password for credentials encryption when requested.
