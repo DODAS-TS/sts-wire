@@ -92,7 +92,7 @@ func htmlMountingpageHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "html/mountingPage.html", size: 1070, mode: os.FileMode(420), modTime: time.Unix(1608313323, 0)}
+	info := bindataFileInfo{name: "html/mountingPage.html", size: 1070, mode: os.FileMode(420), modTime: time.Unix(1609238748, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
