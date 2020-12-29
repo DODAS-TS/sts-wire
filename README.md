@@ -114,7 +114,7 @@ IAM_SERVER="https://my.iam.server.com" ./sts-wire_linux myMinio https://myserver
 # Using a config file name myConfig.yml
 ./sts-wire_linux --config myConfig.yml
 ```
-> **Note:** the IAM server is overwritten using the `IAM_SERVER` environment variable
+> **Note:** in the above example the IAM server is overwritten using the `IAM_SERVER` environment variable
 
 
 After that, you have to follow all the instructions and providing a password for credentials encryption when requested.
