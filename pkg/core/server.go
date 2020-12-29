@@ -24,6 +24,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	deltaCheckTokenRefresh = time.Duration(5 * time.Second)
+)
+
 // RCloneStruct ..
 type RCloneStruct struct {
 	Address  string
@@ -121,9 +125,10 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
 			providers := []credentials.Provider{
 				&IAMProvider{ //nolint: exhaustivestruct
-					StsEndpoint: s.S3Endpoint,
-					Token:       token,
-					HTTPClient:  &s.Client.HTTPClient,
+					StsEndpoint:       s.S3Endpoint,
+					Token:             token,
+					HTTPClient:        &s.Client.HTTPClient,
+					RefreshTokenRenew: s.RefreshTokenRenew,
 				},
 			}
 
@@ -327,7 +332,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 	startT := time.Now()
 
 	for loop {
-		if time.Since(startT) >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
+		if time.Since(startT)+deltaCheckTokenRefresh >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
 			startT = time.Now()
 			v := url.Values{}
 
@@ -387,7 +392,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 		select {
 		case <-signalChan:
-			color.Red.Println("==> Wait a moment, service is exiting...")
+			color.Red.Println("\r==> Wait a moment, service is exiting...")
 			log.Info().Msg("UpdateTokenLoop interrupt signa!")
 			loop = false
 
