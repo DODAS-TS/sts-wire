@@ -3,6 +3,7 @@ package core
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
@@ -15,7 +16,7 @@ import (
 func CreateHash(key string) string {
 	log.Info().Msg("create hash")
 
-	hasher := md5.New()
+	hasher := hmac.New(md5.New, []byte("sts-wire"))
 	_, errWrite := hasher.Write([]byte(key))
 
 	if errWrite != nil {
