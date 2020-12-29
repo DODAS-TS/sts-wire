@@ -10,13 +10,19 @@ import (
 	"io"
 
 	"github.com/awnumar/memguard"
+	"github.com/denisbrodbeck/machineid"
 	"github.com/rs/zerolog/log"
 )
 
 func CreateHash(key string) string {
 	log.Info().Msg("create hash")
 
-	hasher := hmac.New(md5.New, []byte("sts-wire"))
+	id, errID := machineid.ProtectedID("sts-wire")
+	if errID != nil {
+		panic(errID)
+	}
+
+	hasher := hmac.New(md5.New, []byte(id))
 	_, errWrite := hasher.Write([]byte(key))
 
 	if errWrite != nil {
