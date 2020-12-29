@@ -4,16 +4,39 @@
 
 ## Requirements
 
-- fuse installed
+- fuse installed (Linux and Macos)
+  - Linux (Debian or Ubuntu): ` sudo apt install fuse`
+    - CentOS or similar: ` sudo dnf install fuse`
+  - MacOS: `brew install --cask osxfuse`
+    - or use the binary from the [osxfuse website](https://osxfuse.github.io/)
+  - Windows:
+    - [Use Linux with WSL](https://ubuntu.com/wsl)
+    - Other useful program: [winfsp](https://github.com/billziss-gh/winfsp) 
+
 ## Quick start
 
-Download the binary from the latest release on [github](https://github.com/DODAS-TS/dodas-go-client/releases). For instance:
+Download the binary from the latest release on [github](https://github.com/DODAS-TS/sts-wire/releases) and use it from the command line.
+### Linux
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v0.0.10/sts-wire
-chmod +x sts-wire
-cp sts-wire /usr/local/bin
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_linux
+chmod +x sts-wire_linux
+mv sts-wire_linux /usr/local/bin
 ```
+### MacOS
+
+```bash
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_osx
+chmod +x sts-wire_osx
+mv sts-wire_osx /usr/local/bin
+```
+
+### Windows
+
+Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.0/sts-wire_windows)
+
+**Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
+
 ## Building from source
 
 To compile from the sources you need a `Go` version that supports `Go modules` (e.g. >= v1.12). You can compile the executable using the `Makefile`:
@@ -32,7 +55,8 @@ make build-macos
 You can see how to use the program asking for help in the command line:
 
 ```bash
-./sts-wire -h
+# Linux example
+./sts-wire_linux -h
 ```
 
 The result of the above command will be something similar to this:
@@ -79,9 +103,10 @@ IAM_Server: https://my.iam.server.com
 In the following example you can see how the program is launched:
 
 ```bash
-IAM_SERVER="https://my.iam.server.com" ./sts-wire myMinio https://myserver.com:9000 / ./mountedVolume
+# Linux example
+IAM_SERVER="https://my.iam.server.com" ./sts-wire_linux myMinio https://myserver.com:9000 / ./mountedVolume
 # Using a config file name myConfig.yml
-./sts-wire --config myConfig.yml
+./sts-wire_linux --config myConfig.yml
 ```
 
 
@@ -89,7 +114,7 @@ After that, you have to follow all the instructions and providing a password for
 Eventually, if everything went well, on your browser you will be prompted with a message like:
 
 ```text
-VOLUME MOUNTED, YOU CAN NOW CLOSE THIS TAB. 
+Volume mounted, you can now close this tab. 
 ```
 
 The volume will stay mounted untill you exit the running sts-wire process with Control-C
