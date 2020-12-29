@@ -39,7 +39,7 @@ Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/rele
 
 ## Building from source
 
-To compile from the sources you need a `Go` version that supports `Go modules` (e.g. >= v1.12). You can compile the executable using the `Makefile`:
+To compile from the sources you need a [Go](https://golang.org/dl/) version that supports `Go modules` (e.g. `>= v1.12`). You can compile the executable using the `Makefile`:
 
 ```bash
 # Linux
