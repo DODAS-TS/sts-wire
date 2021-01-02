@@ -14,11 +14,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	exeFileMode = 0750
-	fileMode    = 0644
-)
-
 func CacheDir() (string, error) {
 	cacheDir, errCacheDir := os.UserCacheDir()
 	if errCacheDir != nil {

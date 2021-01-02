@@ -1,5 +1,10 @@
 package core
 
+const (
+	exeFileMode = 0750
+	fileMode    = 0644
+)
+
 var (
 	GitCommit     string //nolint:gochecknoglobals
 	StsVersion    string //nolint:gochecknoglobals

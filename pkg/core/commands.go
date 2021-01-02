@@ -62,7 +62,7 @@ var (
 
 	// rootCmd the sts-wire command.
 	rootCmd = &cobra.Command{ //nolint:exhaustivestruct,gochecknoglobals
-		Use:   "sts-wire <instance name> <s3 endpoint> <rclone remote path> <local mount point>",
+		Use:   "sts-wire <IAM server> <instance name> <s3 endpoint> <rclone remote path> <local mount point>",
 		Short: "",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if cfgFile == "" {
@@ -70,16 +70,19 @@ var (
 					return errNumArgs
 				}
 				if len(args) == numAcceptedArguments {
-					if validInstanceName, err := validator.InstanceName(os.Args[1]); !validInstanceName {
+					if validIAMServer, err := validator.WebURL(os.Args[1]); !validIAMServer {
 						panic(err)
 					}
-					if validEndpoint, err := validator.S3Endpoint(os.Args[2]); !validEndpoint {
+					if validInstanceName, err := validator.InstanceName(os.Args[2]); !validInstanceName {
 						panic(err)
 					}
-					if validRemotePath, err := validator.RemotePath(os.Args[3]); !validRemotePath {
+					if validEndpoint, err := validator.S3Endpoint(os.Args[3]); !validEndpoint {
 						panic(err)
 					}
-					if validLocalPath, err := validator.LocalPath(os.Args[4]); !validLocalPath {
+					if validRemotePath, err := validator.RemotePath(os.Args[4]); !validRemotePath {
+						panic(err)
+					}
+					if validLocalPath, err := validator.LocalPath(os.Args[5]); !validLocalPath {
 						panic(err)
 					}
 				}
@@ -108,10 +111,11 @@ var (
 					}
 				}
 
-				logTarget, errLog := os.Create(logFile)
-				if errLog != nil {
-					panic(errLog)
+				logTarget, errOpenLog := os.OpenFile(logFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
+				if errOpenLog != nil {
+					panic(errOpenLog)
 				}
+
 				log.Logger = zerolog.New(logTarget).With().Timestamp().Logger()
 				defer logTarget.Close()
 			} else {
@@ -127,6 +131,7 @@ var (
 			}
 
 			var (
+				iamServer      string
 				instance       string
 				confDir        string
 				s3Endpoint     string
@@ -135,18 +140,28 @@ var (
 			)
 
 			if cfgFile != "" {
+				iamServer = viper.GetString("IAM_Server")
 				instance = viper.GetString("instance_name")
 				s3Endpoint = viper.GetString("s3_endpoint")
 				remote = viper.GetString("rclone_remote_path")
 				localMountPath = viper.GetString("local_mount_point")
 			} else {
-				instance = os.Args[1]
-				s3Endpoint = os.Args[2]
-				remote = os.Args[3]
-				localMountPath = os.Args[4]
+				iamServer = os.Args[1]
+				instance = os.Args[2]
+				s3Endpoint = os.Args[3]
+				remote = os.Args[4]
+				localMountPath = os.Args[5]
+			}
+
+			// ENV VARIABLE OVERWRITE
+			if os.Getenv("IAM_SERVER") != "" {
+				iamServer = os.Getenv("IAM_SERVER")
 			}
 
 			if cfgFile != "" {
+				if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
+					panic(fmt.Errorf("not a valid IAM server %w", err))
+				}
 				if validInstanceName, err := validator.InstanceName(instance); !validInstanceName {
 					panic(err)
 				}
@@ -173,6 +188,7 @@ var (
 				}
 			}
 
+			log.Debug().Str("iamServer", iamServer).Msg("command")
 			log.Debug().Str("istance", instance).Msg("command")
 			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
 			log.Debug().Str("remote", remote).Msg("command")
@@ -250,15 +266,6 @@ var (
 				Transport: tr,
 			}
 
-			iamServer := viper.GetString("IAM_Server")
-			if os.Getenv("IAM_SERVER") != "" {
-				iamServer = os.Getenv("IAM_SERVER")
-			}
-			log.Debug().Str("iamServer", iamServer).Msg("command")
-			if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
-				panic(fmt.Errorf("not a valid IAM server %w", err))
-			}
-
 			clientIAM := InitClientConfig{
 				ConfDir:        confDir,
 				ClientConfig:   clientConfig,
@@ -305,7 +312,7 @@ var (
 		},
 	}
 
-	versionCmd = &cobra.Command{
+	versionCmd = &cobra.Command{ // nolint:exhaustivestruct,gochecknoglobals
 		Use:   "version",
 		Short: "Print the version number of Hugo",
 		Long:  `All software has versions. This is Hugo's`,
@@ -341,10 +348,12 @@ func init() { //nolint: gochecknoinits
 	defaultLogFile = path.Join(baseLogDir, "log", "sts-wire.log")
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
-	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile, "where the log has to write, a file path or stderr")
+	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile,
+		"where the log has to write, a file path or stderr")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "start the program in debug mode")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConn", false, "check the http connection certificate")
-	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15, "time span to renew the refresh token in minutes")
+	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
+		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 
 	errFlag := viper.BindPFlag("insecureConn", rootCmd.PersistentFlags().Lookup("insecureConn"))
