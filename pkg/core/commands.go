@@ -314,8 +314,7 @@ var (
 
 	versionCmd = &cobra.Command{ // nolint:exhaustivestruct,gochecknoglobals
 		Use:   "version",
-		Short: "Print the version number of Hugo",
-		Long:  `All software has versions. This is Hugo's`,
+		Short: "Print the version number of sts-wire",
 		Run: func(cmd *cobra.Command, args []string) {
 			versionString := strings.Builder{}
 			versionString.WriteString("------------------------------------------------------------------------------\n")
