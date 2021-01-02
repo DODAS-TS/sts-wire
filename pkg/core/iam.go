@@ -85,7 +85,7 @@ type WebIdentityResult struct {
 
 // Retrieve credentials.
 func (t *IAMProvider) Retrieve() (credentials.Value, error) {
-	log.Info().Msg("IAM - Retrieve")
+	log.Debug().Msg("IAM - Retrieve")
 
 	body := url.Values{}
 	body.Set("Action", "AssumeRoleWithWebIdentity")
@@ -93,7 +93,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 	body.Set("WebIdentityToken", t.Token)
 	body.Set("DurationSeconds", strconv.Itoa(t.RefreshTokenRenew*60))
 
-	log.Info().Str("stsEndpoint", t.StsEndpoint).Str("body", body.Encode()).Msg("IAM")
+	log.Debug().Str("stsEndpoint", t.StsEndpoint).Str("body", body.Encode()).Msg("IAM")
 
 	url, errParse := url.Parse(
 		strings.Join(
@@ -105,7 +105,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 		panic(errParse)
 	}
 
-	log.Info().Str("url", url.String()).Msg("IAM")
+	log.Debug().Str("url", url.String()).Msg("IAM")
 
 	req := http.Request{ // nolint:exhaustivestruct
 		Method: "POST",
@@ -120,7 +120,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 	}
 	defer resp.Body.Close()
 
-	log.Info().Int("statusCode", resp.StatusCode).Str("status", resp.Status).Msg("IAM")
+	log.Debug().Int("statusCode", resp.StatusCode).Str("status", resp.Status).Msg("IAM")
 
 	rbody, errRead := ioutil.ReadAll(resp.Body)
 	if errRead != nil {
@@ -129,7 +129,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errRead)
 	}
 
-	log.Info().Str("body", string(rbody)).Msg("IAM")
+	log.Debug().Str("body", string(rbody)).Msg("IAM")
 
 	t.Creds = &AssumeRoleWithWebIdentityResponse{}
 
@@ -140,7 +140,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errUnmarshall)
 	}
 
-	log.Info().Str("credential", "acquired").Msg("IAM")
+	log.Debug().Str("credential", "acquired").Msg("IAM")
 
 	return credentials.Value{ // nolint:exhaustivestruct
 		AccessKeyID:     t.Creds.Result.Credentials.AccessKey,

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -52,9 +53,11 @@ var (
 	// Used for flags.
 	cfgFile           string //nolint:gochecknoglobals
 	logFile           string //nolint:gochecknoglobals
+	defaultLogFile    string //nolint:gochecknoglobals
 	insecureConn      bool   //nolint:gochecknoglobals
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
+	debug             bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
 
 	// rootCmd the sts-wire command.
@@ -85,13 +88,26 @@ var (
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if confLog := viper.GetString("log"); logFile == "stderr" && confLog != "" {
+			if confLog := viper.GetString("log"); logFile == defaultLogFile && confLog != "" {
 				logFile = confLog
 			}
+
+			if debug {
+				logFile = "stderr"
+			}
+
 			if logFile != "stderr" {
 				if valid, err := validator.LogFile(logFile); !valid {
 					panic(err)
 				}
+				_, errBaseDir := os.Stat(filepath.Dir(logFile))
+				if errBaseDir != nil && os.IsNotExist(errBaseDir) {
+					errMkdirs := os.MkdirAll(filepath.Dir(logFile), os.ModePerm)
+					if errMkdirs != nil {
+						panic(errMkdirs)
+					}
+				}
+
 				logTarget, errLog := os.Create(logFile)
 				if errLog != nil {
 					panic(errLog)
@@ -102,8 +118,8 @@ var (
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}) // nolint:exhaustivestruct
 			}
 
-			log.Info().Str("log file", logFile).Msg("logging")
-			log.Info().Msg("Start sts-wire")
+			log.Debug().Str("log file", logFile).Msg("logging")
+			log.Debug().Msg("Start sts-wire")
 
 			inputReader := *bufio.NewReader(os.Stdin)
 			scanner := GetInputWrapper{
@@ -157,11 +173,11 @@ var (
 				}
 			}
 
-			log.Info().Str("istance", instance).Msg("command")
-			log.Info().Str("s3Endpoint", s3Endpoint).Msg("command")
-			log.Info().Str("remote", remote).Msg("command")
-			log.Info().Str("localMountPath", localMountPath).Msg("command")
-			log.Info().Str("confDir", confDir).Msg("command")
+			log.Debug().Str("istance", instance).Msg("command")
+			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
+			log.Debug().Str("remote", remote).Msg("command")
+			log.Debug().Str("localMountPath", localMountPath).Msg("command")
+			log.Debug().Str("confDir", confDir).Msg("command")
 
 			// if instance == "" {
 			// 	instance, err := scanner.GetInputString("Insert a name for the instance: ", "")
@@ -186,8 +202,8 @@ var (
 				iamcPort = newIamcPort
 			}
 
-			log.Info().Str("iamcURL", iamcURL).Msg("command")
-			log.Info().Int("iamcPort", iamcPort).Msg("command")
+			log.Debug().Str("iamcURL", iamcURL).Msg("command")
+			log.Debug().Int("iamcPort", iamcPort).Msg("command")
 
 			clientConfig := IAMClientConfig{ // nolint:exhaustivestruct
 				Host:       iamcURL,
@@ -203,7 +219,7 @@ var (
 				panic(errRefreshToken)
 			}
 
-			log.Info().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
+			log.Debug().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
 
 			// Create a CA certificate pool and add cert.pem to it
 			// caCert, err := ioutil.ReadFile("MINIO.pem")
@@ -218,7 +234,7 @@ var (
 			if insecureConnVip := viper.GetBool("insecureConn"); insecureConnVip != insecureConn {
 				insecureConn = insecureConnVip
 			}
-			log.Info().Bool("insecureConn", insecureConn).Msg("command")
+			log.Debug().Bool("insecureConn", insecureConn).Msg("command")
 
 			cfg := &tls.Config{ // nolint: exhaustivestruct
 				// ClientCAs: caCertPool,
@@ -238,7 +254,7 @@ var (
 			if os.Getenv("IAM_SERVER") != "" {
 				iamServer = os.Getenv("IAM_SERVER")
 			}
-			log.Info().Str("iamServer", iamServer).Msg("command")
+			log.Debug().Str("iamServer", iamServer).Msg("command")
 			if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
 				panic(fmt.Errorf("not a valid IAM server %w", err))
 			}
@@ -312,8 +328,21 @@ var (
 func init() { //nolint: gochecknoinits
 	cobra.OnInitialize(initConfig)
 
+	baseLogDir, errConfDir := os.UserConfigDir()
+	if errConfDir != nil {
+		curDir, errAbsCurDir := filepath.Abs(filepath.Dir(os.Args[0]))
+		if errAbsCurDir != nil {
+			panic(errAbsCurDir)
+		}
+
+		baseLogDir = curDir
+	}
+
+	defaultLogFile = path.Join(baseLogDir, "log", "sts-wire.log")
+
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
-	rootCmd.PersistentFlags().StringVar(&logFile, "log", "stderr", "where the log has to write, a file path or stderr")
+	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile, "where the log has to write, a file path or stderr")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "start the program in debug mode")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConn", false, "check the http connection certificate")
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15, "time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")

@@ -45,11 +45,11 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		request := b.String()
 
-		log.Info().Str("URL", request).Msg("credentials")
+		log.Debug().Str("URL", request).Msg("credentials")
 
 		contentType := "application/json"
 
-		log.Info().Str("REFRESH_TOKEN", os.Getenv("REFRESH_TOKEN")).Msg("credentials")
+		log.Debug().Str("REFRESH_TOKEN", os.Getenv("REFRESH_TOKEN")).Msg("credentials")
 
 		if t.IAMServer == "" {
 			endpoint, err = t.Scanner.GetInputString("Insert the IAM endpoint",
@@ -58,14 +58,14 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 				panic(err)
 			}
 		} else if t.IAMServer != "" {
-			log.Info().Str("IAM endpoint used", t.IAMServer).Msg("Credentials")
+			log.Debug().Str("IAM endpoint used", t.IAMServer).Msg("Credentials")
 			color.Green.Printf("==> IAM endpoint used: %s", t.IAMServer)
 			endpoint = t.IAMServer
 		}
 
 		register := endpoint + "/register"
 
-		log.Info().Str("IAM register url", register).Msg("Credentials")
+		log.Debug().Str("IAM register url", register).Msg("Credentials")
 		color.Green.Printf("==> IAM register url: %s", register)
 
 		r, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
@@ -73,14 +73,14 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			panic(err)
 		}
 
-		log.Info().Int("StatusCode", r.StatusCode).Str("Status", r.Status).Msg("credentials")
+		log.Debug().Int("StatusCode", r.StatusCode).Str("Status", r.Status).Msg("credentials")
 
 		rbody, errReadBody := ioutil.ReadAll(r.Body)
 		if errReadBody != nil {
 			panic(errReadBody)
 		}
 
-		log.Info().Str("body", string(rbody)).Msg("credentials")
+		log.Debug().Str("body", string(rbody)).Msg("credentials")
 
 		errUnmarshall := json.Unmarshal(rbody, &clientResponse)
 		if errUnmarshall != nil {
@@ -130,7 +130,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 				panic(errUnmarshal)
 			}
 
-			log.Info().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
+			log.Debug().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
 			endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
 		}
 	}

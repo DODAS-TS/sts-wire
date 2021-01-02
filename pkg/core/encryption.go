@@ -15,7 +15,7 @@ import (
 )
 
 func CreateHash(key string) string {
-	log.Info().Msg("create hash")
+	log.Debug().Msg("create hash")
 
 	id, errID := machineid.ProtectedID("sts-wire")
 	if errID != nil {
@@ -33,7 +33,7 @@ func CreateHash(key string) string {
 }
 
 func Encrypt(data []byte, password *memguard.Enclave) []byte {
-	log.Info().Msg("encryption - open enclave")
+	log.Debug().Msg("encryption - open enclave")
 
 	passphrase, errOpenEnclave := password.Open()
 	if errOpenEnclave != nil {
@@ -42,14 +42,14 @@ func Encrypt(data []byte, password *memguard.Enclave) []byte {
 
 	defer passphrase.Destroy() // Destroy the copy when we return
 
-	log.Info().Msg("encryption - create cipher")
+	log.Debug().Msg("encryption - create cipher")
 
 	block, errNewCiper := aes.NewCipher([]byte(CreateHash(string(passphrase.Bytes()))))
 	if errNewCiper != nil {
 		panic(errNewCiper)
 	}
 
-	log.Info().Msg("encryption - create block")
+	log.Debug().Msg("encryption - create block")
 
 	gcm, errNewGCM := cipher.NewGCM(block)
 	if errNewGCM != nil {
@@ -62,7 +62,7 @@ func Encrypt(data []byte, password *memguard.Enclave) []byte {
 		panic(err.Error())
 	}
 
-	log.Info().Msg("encryption - encode")
+	log.Debug().Msg("encryption - encode")
 
 	ciphertext := gcm.Seal(nonce, nonce, data, nil)
 
@@ -70,7 +70,7 @@ func Encrypt(data []byte, password *memguard.Enclave) []byte {
 }
 
 func Decrypt(data []byte, password *memguard.Enclave) []byte {
-	log.Info().Msg("decryption - open enclave")
+	log.Debug().Msg("decryption - open enclave")
 
 	passphrase, errOpenEnclave := password.Open()
 	if errOpenEnclave != nil {
@@ -79,18 +79,18 @@ func Decrypt(data []byte, password *memguard.Enclave) []byte {
 
 	defer passphrase.Destroy() // Destroy the copy when we return
 
-	log.Info().Msg("decryption - create key")
+	log.Debug().Msg("decryption - create key")
 
 	key := []byte(CreateHash(string(passphrase.Bytes())))
 
-	log.Info().Msg("decryption - create cipher")
+	log.Debug().Msg("decryption - create cipher")
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	log.Info().Msg("decryption - create block")
+	log.Debug().Msg("decryption - create block")
 
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
@@ -100,7 +100,7 @@ func Decrypt(data []byte, password *memguard.Enclave) []byte {
 	nonceSize := gcm.NonceSize()
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 
-	log.Info().Msg("decryption - decode")
+	log.Debug().Msg("decryption - decode")
 
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {

@@ -175,14 +175,14 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		address := "localhost:3128"
 		urlBrowse := fmt.Sprintf("http://%s/", address)
 
-		log.Info().Str("IAM auth URL", urlBrowse).Msg("Server")
+		log.Debug().Str("IAM auth URL", urlBrowse).Msg("Server")
 
 		err := browser.OpenURL(urlBrowse)
 		if err != nil {
 			log.Err(err).Msg("Failed to open browser, trying to copy the following on you browser")
-			log.Info().Msg(config.AuthCodeURL(state))
-			log.Info().Msg("After that copy the resulting address and run the following command on a separate shell")
-			log.Info().Msg("curl \"<your resulting address e.g. http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf>\" ")
+			log.Debug().Msg(config.AuthCodeURL(state))
+			log.Debug().Msg("After that copy the resulting address and run the following command on a separate shell")
+			log.Debug().Msg("curl \"<your resulting address e.g. http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf>\" ")
 
 			color.Red.Println("!!! Failed to open browser, trying to copy the following on you browser")
 			fmt.Printf("==> %s\n", config.AuthCodeURL(state))
@@ -261,8 +261,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		}
 	}
 
-	log.Info().Str("s.S3Endpoint", s.S3Endpoint).Msg("server")
-	log.Info().Str("s.Instance", s.Instance).Msg("server")
+	log.Debug().Str("s.S3Endpoint", s.S3Endpoint).Msg("server")
+	log.Debug().Str("s.Instance", s.Instance).Msg("server")
 
 	confRClone := RCloneStruct{
 		Address:  s.S3Endpoint,
@@ -281,7 +281,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	}
 
 	rclone := b.String()
-	log.Info().Str("rclone config", rclone).Msg("server")
+	log.Debug().Str("rclone config", rclone).Msg("server")
 
 	err = ioutil.WriteFile(s.Client.ConfDir+"/"+"rclone.conf", []byte(rclone), 0600)
 	if err != nil {
@@ -294,7 +294,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	}
 	s.rcloneCmd = rcloneCmd
 
-	log.Info().Str("Mounted on", s.LocalPath).Msg("Server")
+	log.Debug().Str("Mounted on", s.LocalPath).Msg("Server")
 	color.Green.Printf("==> Volume mounted at %s\n", s.LocalPath)
 
 	// // TODO: start routine to keep token valid!
@@ -393,10 +393,10 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 		select {
 		case <-signalChan:
 			color.Red.Println("\r==> Wait a moment, service is exiting...")
-			log.Info().Msg("UpdateTokenLoop interrupt signa!")
+			log.Debug().Msg("UpdateTokenLoop interrupt signa!")
 			loop = false
 
-			log.Info().Msg("Interrupt rclone process")
+			log.Debug().Msg("Interrupt rclone process")
 			_ = s.rcloneCmd.Process.Signal(os.Interrupt)
 
 			status, _ := s.rcloneCmd.Process.Wait()
@@ -411,7 +411,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 	signal.Stop(signalChan)
 
-	log.Info().Msg("UpdateTokenLoop exit")
+	log.Debug().Msg("UpdateTokenLoop exit")
 	time.Sleep(1 * time.Second)
 	fmt.Println("==> Done!")
 }

@@ -45,18 +45,18 @@ func PrepareRclone() error { // nolint: funlen
 		return errCacheDir
 	}
 
-	log.Info().Str("basedir", baseDir).Msg("rclone")
+	log.Debug().Str("basedir", baseDir).Msg("rclone")
 
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
 		return errExePath
 	}
 
-	log.Info().Str("rcloneFile", rcloneFile).Msg("rclone")
-	log.Info().Msg("rclone - get asset data")
+	log.Debug().Str("rcloneFile", rcloneFile).Msg("rclone")
+	log.Debug().Msg("rclone - get asset data")
 
 	data, errAsset := rclone.Asset("rclone")
-	log.Info().Int("assetLen", len(data)).Msg("rclone")
+	log.Debug().Int("assetLen", len(data)).Msg("rclone")
 
 	if errAsset != nil {
 		log.Err(errAsset).Msg("Rclone asset for Darwin not found")
@@ -64,7 +64,7 @@ func PrepareRclone() error { // nolint: funlen
 		return fmt.Errorf("prepare rclone %w", errAsset)
 	}
 
-	log.Info().Msg("rclone - create executable")
+	log.Debug().Msg("rclone - create executable")
 
 	errMkdir := os.MkdirAll(baseDir, os.ModePerm)
 	if errMkdir != nil && !os.IsExist(errMkdir) {
@@ -83,7 +83,7 @@ func PrepareRclone() error { // nolint: funlen
 	buff := bytes.NewReader(data)
 	writtenData, errWrite := io.Copy(rcloneExeFile, buff)
 
-	log.Info().Int64("writtenData", writtenData).Msg("rclone")
+	log.Debug().Int64("writtenData", writtenData).Msg("rclone")
 
 	if errWrite != nil {
 		log.Err(errWrite).Msg("Cannot write rclone executable in cache dir")
@@ -93,7 +93,7 @@ func PrepareRclone() error { // nolint: funlen
 
 	rcloneExeFile.Close()
 
-	log.Info().Msg("rclone - change executable mod")
+	log.Debug().Msg("rclone - change executable mod")
 
 	errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
 	if errChmod != nil {
@@ -106,7 +106,7 @@ func PrepareRclone() error { // nolint: funlen
 }
 
 func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, error) { // nolint: funlen
-	log.Info().Str("action", "prepare rclone").Msg("rclone - mount")
+	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
 	if errPrepare != nil {
@@ -115,14 +115,14 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, errPrepare
 	}
 
-	log.Info().Str("action", "get file path").Msg("rclone - mount")
+	log.Debug().Str("action", "get file path").Msg("rclone - mount")
 
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
 		return nil, errExePath
 	}
 
-	log.Info().Str("action", "make local dir").Msg("rclone - mount")
+	log.Debug().Str("action", "make local dir").Msg("rclone - mount")
 
 	_, errLocalPath := os.Stat(localPath)
 	if os.IsNotExist(errLocalPath) {
@@ -133,7 +133,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	}
 
 	conf := fmt.Sprintf("%s:%s", instance, remotePath)
-	log.Info().Str("action", "prepare mounting points").Msg("rclone - mount")
+	log.Debug().Str("action", "prepare mounting points").Msg("rclone - mount")
 
 	configPathAbs, errConfigPath := filepath.Abs(path.Join(configPath, "/rclone.conf"))
 	if errConfigPath != nil {
@@ -156,7 +156,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, errLocalPath
 	}
 
-	log.Info().Str("command", strings.Join([]string{
+	log.Debug().Str("command", strings.Join([]string{
 		rcloneFile,
 		"--config",
 		configPathAbs,
@@ -189,7 +189,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		localPathAbs,
 	)
 
-	log.Info().Str("action", "start rclone").Msg("rclone - mount")
+	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
 	errStart := rcloneCmd.Start()
 	if errStart != nil {
