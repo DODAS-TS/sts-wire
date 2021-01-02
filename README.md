@@ -67,39 +67,42 @@ The result of the above command will be something similar to this:
 
 ```text
 Usage:
-  sts-wire <instance name> <s3 endpoint> <rclone remote path> <local mount point> [flags]
+  sts-wire <IAM server> <instance name> <s3 endpoint> <rclone remote path> <local mount point> [flags]
+  sts-wire [command]
+
+Available Commands:
+  help        Help about any command
+  version     Print the version number of Hugo
 
 Flags:
       --config string           config file (default "./config.json")
+      --debug                   start the program in debug mode
   -h, --help                    help for sts-wire
-      --insecureConnection      check the http connection certificate (default true)
-      --log string              where the log has to write, a file path or stderr (default "stderr")
+      --insecureConn            check the http connection certificate
+      --log string              where the log has to write, a file path or stderr (default "/Users/mircotracolli/Library/Application Support/log/sts-wire.log")
       --noPassword              to not encrypt the data with a password
-      --refreshTokenRenew int   time span to renew the refresh token in minutes (default 10)
+      --refreshTokenRenew int   time span to renew the refresh token in minutes (default 15)
+
+Use "sts-wire [command] --help" for more information about a command.
 ```
 
 As you can see, to use the `sts-wire` you need the following arguments to be passed:
 
+- `<IAM server>`: the name your IAM server where you can verify your credentials
 - `<instance name>`: the name you give to the `sts-wire` instance
 - `<s3 endpoint>`: the *s3* server you want to use, also a local one, e.g. `http://localhost:9000`
 - `<rclone remote path>`: the remote path that you need to mount locally, relative to the *s3* server, e.g. `/folder/on/my/s3`. It could be any of your buckets, also root `/`.
 - `<local mount point>`: the folder where you want to mount the remote source. It could be also relative to the current working folder, e.g. `./my_local_mountpoint`
-  
-**Note:** remember to set the `IAM_SERVER` variable before using the command, to point to a trusted IAM server.
-
-```bash
-export IAM_SERVER="https://my.iam.server.com"
-```
 
 Alternatively, you can create a YAML configuration file like the following:
 
 ```yaml
 ---
+IAM_Server: https://my.iam.server.com
 instance_name: test_instance
 s3_endpoint: http://localhost:9000
 rclone_remote_path: /test
 local_mount_point: ./my_local_mountpoint
-IAM_Server: https://my.iam.server.com
 # Other useful options
 IAMAuthURL: http://localhost
 IAMAuthURLPort: 3128
@@ -108,26 +111,25 @@ noPassword: false
 refreshTokenRenew: 10
 insecureConn: false
 ```
-
 ### Launch the program
 
 In the following example you can see how the program is launched:
 
 ```bash
 # Linux example
-IAM_SERVER="https://my.iam.server.com" ./sts-wire_linux myMinio https://myserver.com:9000 / ./mountedVolume
-# Using a config file name myConfig.yml
+./sts-wire_linux https://my.iam.server.com myMinio https://myserver.com:9000 / ./mountedVolume
+```
+
+Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#How-to-use)
+
+```bash
 ./sts-wire_linux --config myConfig.yml
 ```
-> **Note:** in the above example the IAM server is overwritten using the `IAM_SERVER` environment variable
-
 
 After that, you have to follow all the instructions and providing a password for credentials encryption when requested.
 Eventually, if everything went well, on your browser you will be prompted with a message like:
 
-```text
-Volume mounted, you can now close this tab. 
-```
+![mount response](img/response.png)
 
 The volume will stay mounted untill you exit the running *sts-wire* process with `Ctrl+c`
 ## Contributing
