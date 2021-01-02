@@ -159,6 +159,12 @@ var (
 				iamServer = os.Getenv("IAM_SERVER")
 			}
 
+			log.Debug().Str("iamServer", iamServer).Msg("command")
+			log.Debug().Str("istance", instance).Msg("command")
+			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
+			log.Debug().Str("remote", remote).Msg("command")
+			log.Debug().Str("localMountPath", localMountPath).Msg("command")
+
 			if cfgFile != "" {
 				if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
 					panic(fmt.Errorf("not a valid IAM server %w", err))
@@ -189,11 +195,6 @@ var (
 				}
 			}
 
-			log.Debug().Str("iamServer", iamServer).Msg("command")
-			log.Debug().Str("istance", instance).Msg("command")
-			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
-			log.Debug().Str("remote", remote).Msg("command")
-			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Str("confDir", confDir).Msg("command")
 
 			// if instance == "" {
@@ -394,8 +395,10 @@ func init() { //nolint: gochecknoinits
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
-		if _, err := os.Stat(cfgFile); os.IsExist(err) {
+		if _, err := os.Stat(cfgFile); err == nil || os.IsExist(err) {
 			viper.SetConfigFile(cfgFile)
+		} else {
+			cfgFile = ""
 		}
 	}
 
@@ -404,6 +407,6 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Println("==> sts-wire start")
 	} else {
-		fmt.Println("==> sts-wire start using config file:", viper.ConfigFileUsed())
+		fmt.Println("==> sts-wire is using config file:", viper.ConfigFileUsed())
 	}
 }
