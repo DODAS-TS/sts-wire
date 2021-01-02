@@ -394,11 +394,7 @@ func init() { //nolint: gochecknoinits
 func initConfig() {
 	if cfgFile != "" {
 		// Use config file from the flag.
-		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-			if cfgFile != "./config.yml" {
-				color.Yellow.Printf("==> no '%s' file found\n", cfgFile)
-			}
-		} else {
+		if _, err := os.Stat(cfgFile); os.IsExist(err) {
 			viper.SetConfigFile(cfgFile)
 		}
 	}
@@ -406,8 +402,8 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("==> no configuration file found in all folders, sts-wire will use flags and arguments...")
+		fmt.Println("==> sts-wire start")
 	} else {
-		fmt.Println("==> using config file:", viper.ConfigFileUsed())
+		fmt.Println("==> sts-wire start using config file:", viper.ConfigFileUsed())
 	}
 }
