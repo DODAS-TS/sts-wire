@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
+	"strings"
 
 	"github.com/DODAS-TS/sts-wire/pkg/template"
 	"github.com/DODAS-TS/sts-wire/pkg/validator"
@@ -286,6 +288,24 @@ var (
 			return nil
 		},
 	}
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Hugo",
+		Long:  `All software has versions. This is Hugo's`,
+		Run: func(cmd *cobra.Command, args []string) {
+			versionString := strings.Builder{}
+			versionString.WriteString("------------------------------------------------------------------------------\n")
+			versionString.WriteString(fmt.Sprintf(" Version:\t\t%s\n", StsVersion))
+			versionString.WriteString(fmt.Sprintf(" Git Commit:\t\t%s\n", GitCommit))
+			versionString.WriteString(fmt.Sprintf(" Go Version:\t\t%s\n", runtime.Version()))
+			versionString.WriteString(fmt.Sprintf(" Built Time:\t\t%s\n", BuiltTime))
+			versionString.WriteString(fmt.Sprintf(" OS/Arch:\t\t%s\n", OsArch))
+			versionString.WriteString(fmt.Sprintf(" Rclone Version:\t%s\n", RcloneVersion))
+			versionString.WriteString("------------------------------------------------------------------------------")
+			fmt.Println(versionString.String())
+		},
+	}
 )
 
 // init of the cobra root command and viper configuration.
@@ -328,6 +348,8 @@ func init() { //nolint: gochecknoinits
 
 	viper.AddConfigPath(path.Join(home, ".sts-wire"))
 	viper.AddConfigPath(".")
+
+	rootCmd.AddCommand(versionCmd)
 }
 
 // initConfig of viper.

@@ -1,7 +1,13 @@
 GOBINDATAEXE=$(shell go env GOPATH)/bin/go-bindata
 SEDCMD=sed -i
 
-UNAME_S := $(shell uname -s)
+GITCOMMIT = $(shell git rev-parse --short HEAD)
+STSVERSION = $(shell git describe --abbrev=0 --tags)
+BUILTTIME = $(shell date -u "+%Y-%m-%d %I:%M:%S%p")
+
+RCLONEVERSION = v1.51.1-patch-s3
+
+UNAME_S = $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 	SEDCMD=sed -i ""
 	GOBINDATAEXE=${GOPATH}/bin/go-bindata
@@ -27,7 +33,7 @@ bind-rclone: go-bindata-download
 	@echo "==> bindata rclone linux"
 	@mkdir -p data/linux
 	@echo "==> download rclone linux"
-	@wget -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone
+	@wget -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone
 	@echo "==> bindata rclone linux executable"
 	${GOBINDATAEXE} -o pkg/rclone/rclone_linux.go -prefix data/linux/ data/linux/
 	@echo "==> fix linux package"
@@ -38,7 +44,7 @@ bind-rclone-windows: go-bindata-download
 	@echo "==> bindata rclone windows"
 	@mkdir -p data/windows
 	@echo "==> download rclone windows"
-	@wget -L -O data/windows/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone.exe
+	@wget -L -O data/windows/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone.exe
 	@echo "==> bindata rclone windows executable"
 	${GOBINDATAEXE} -o pkg/rclone/rclone_windows.go -prefix data/windows/ data/windows/
 	@echo "==> fix windows package"
@@ -49,7 +55,7 @@ bind-rclone-macos: go-bindata-download
 	@echo "==> bindata rclone macos"
 	@mkdir -p data/darwin
 	@echo "==> download rclone macos"
-	@wget -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/v1.51.1-patch-s3/rclone_osx
+	@wget -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone_osx
 	@echo "==> bindata rclone macos executable"
 	${GOBINDATAEXE} -o pkg/rclone/rclone_darwin.go -prefix data/darwin/ data/darwin/
 	@echo "==> fix macos package"
@@ -58,17 +64,35 @@ bind-rclone-macos: go-bindata-download
 .PHONY: build-linux
 build-linux: bind-html bind-rclone
 	@echo "==> build sts-wire linux"
-	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_linux
+	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=linux'"\
+		-v -o sts-wire_linux
 
 .PHONY: build-windows
 build-windows: bind-html bind-rclone-windows
 	@echo "==> build sts-wire windows"
-	@env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_windows.exe
+	@env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'"\
+		-v -o sts-wire_windows.exe
 
 .PHONY: build-macos
 build-macos: bind-html bind-rclone-macos
-	@echo "==> build sts-wire macOs"
-	@env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w" -v -o sts-wire_osx
+	@echo "==> build sts-wire macOS"
+	@env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w \
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=darwin'"\
+		-v -o sts-wire_osx
 
 .PHONY: clean
 clean:
