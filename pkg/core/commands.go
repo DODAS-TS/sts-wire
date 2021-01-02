@@ -153,6 +153,7 @@ var (
 				localMountPath = os.Args[5]
 			}
 
+			// TODO: check if it is useful or not to have env variable overwrite mechanism
 			// ENV VARIABLE OVERWRITE
 			if os.Getenv("IAM_SERVER") != "" {
 				iamServer = os.Getenv("IAM_SERVER")
