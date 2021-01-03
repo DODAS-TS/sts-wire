@@ -2,7 +2,7 @@
 
 # STS WIRE
 
-## Requirements :information_source:
+## :information_source: Requirements
 
 - fuse installed (Linux and Macos)
   - Linux (Debian or Ubuntu): ` sudo apt install fuse`
@@ -14,7 +14,7 @@
     - Other useful program: [winfsp](https://github.com/billziss-gh/winfsp)
   - Further information on fuse dependency with rclone: [rclone mount](https://rclone.org/commands/rclone_mount/)
 
-## Quick start :fast_forward:
+## :fast_forward: Quick start
 
 Download the binary from the latest release on [github](https://github.com/DODAS-TS/sts-wire/releases) and use it from the command line.
 ### Linux
@@ -60,7 +60,7 @@ make build-windows
 make build-macos
 ```
 
-## How to use :question:
+## :question: How to use
 
 You can see how to use the program asking for help in the command line:
 
@@ -117,7 +117,7 @@ noPassword: false
 refreshTokenRenew: 10
 insecureConn: false
 ```
-### Launch the program :rocket:
+### :rocket: Launch the program
 
 In the following example you can see how the program is launched:
 
