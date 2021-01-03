@@ -32,8 +32,8 @@ chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin
 ```
 
-- [Go to How to use](#How-to-use)
-- [Go to Launch the program](#Launch-the-program)
+- [Go to How to use](#:question:-How-to-use)
+- [Go to Launch the program](#:rocket:-Launch-the-program)
 
 ### Windows
 
@@ -126,7 +126,7 @@ In the following example you can see how the program is launched:
 ./sts-wire_linux https://my.iam.server.com myMinio https://myserver.com:9000 / ./mountedVolume
 ```
 
-Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#How-to-use)
+Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#:question:-How-to-use)
 
 ```bash
 ./sts-wire_linux --config myConfig.yml
