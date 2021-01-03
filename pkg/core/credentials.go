@@ -27,10 +27,11 @@ type InitClientConfig struct {
 }
 
 func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) {
-
 	rbody, err := ioutil.ReadFile(t.ConfDir + "/" + instance + ".json")
-	if err != nil {
 
+	switch {
+
+	case err != nil:
 		tmpl, errParser := template.New("client").Parse(t.ClientTemplate)
 		if errParser != nil {
 			panic(errParser)
@@ -68,14 +69,16 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		log.Debug().Str("IAM register url", register).Msg("Credentials")
 		color.Green.Printf("==> IAM register url: %s\n", register)
 
-		r, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
+		resp, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
 		if err != nil {
 			panic(err)
 		}
 
-		log.Debug().Int("StatusCode", r.StatusCode).Str("Status", r.Status).Msg("credentials")
+		defer resp.Body.Close()
 
-		rbody, errReadBody := ioutil.ReadAll(r.Body)
+		log.Debug().Int("StatusCode", resp.StatusCode).Str("Status", resp.Status).Msg("credentials")
+
+		rbody, errReadBody := ioutil.ReadAll(resp.Body)
 		if errReadBody != nil {
 			panic(errReadBody)
 		}
@@ -89,9 +92,10 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		clientResponse.Endpoint = endpoint
 
-		if !t.NoPWD {
+		if !t.NoPWD { //nolint:nestif
 			var errGetPasswd error
 
+			// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 			if os.Getenv("REFRESH_TOKEN") == "" {
 				passMsg := fmt.Sprintf("%s Insert a pasword for the secret's encryption: ", color.Yellow.Sprint("==>"))
 				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, false)
@@ -100,7 +104,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 					panic(errGetPasswd)
 				}
 			} else {
-				passwd = memguard.NewEnclave([]byte("asdasdasd"))
+				passwd = memguard.NewEnclave([]byte("nopassword"))
 			}
 
 			dumpClient := Encrypt(rbody, passwd)
@@ -110,29 +114,28 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 				panic(err)
 			}
 		}
-	} else {
-		if !t.NoPWD {
-			var errGetPasswd error
+	case err == nil && !t.NoPWD:
+		var errGetPasswd error
 
-			if os.Getenv("REFRESH_TOKEN") == "" {
-				passMsg := fmt.Sprintf("%s Insert a pasword for the secret's decryption: ", color.Yellow.Sprint("==>"))
-				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
+		// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
+		if os.Getenv("REFRESH_TOKEN") == "" {
+			passMsg := fmt.Sprintf("%s Insert a pasword for the secret's decryption: ", color.Yellow.Sprint("==>"))
+			passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
 
-				if errGetPasswd != nil {
-					panic(errGetPasswd)
-				}
-			} else {
-				passwd = memguard.NewEnclave([]byte("asdasdasd"))
+			if errGetPasswd != nil {
+				panic(errGetPasswd)
 			}
-
-			errUnmarshal := json.Unmarshal(Decrypt(rbody, passwd), &clientResponse)
-			if errUnmarshal != nil {
-				panic(errUnmarshal)
-			}
-
-			log.Debug().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
-			endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
+		} else {
+			passwd = memguard.NewEnclave([]byte("nopassword"))
 		}
+
+		errUnmarshal := json.Unmarshal(Decrypt(rbody, passwd), &clientResponse)
+		if errUnmarshal != nil {
+			panic(errUnmarshal)
+		}
+
+		log.Debug().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
+		endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
 	}
 
 	if endpoint == "" {
