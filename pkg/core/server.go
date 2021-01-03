@@ -87,6 +87,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			//log.Printf("%s %s", r.Method, r.RequestURI)
 			if r.RequestURI != "/" {
 				http.NotFound(w, r)
+
 				return
 			}
 			http.Redirect(w, r, config.AuthCodeURL(state), http.StatusFound)
@@ -96,16 +97,19 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			//log.Printf("%s %s", r.Method, r.RequestURI)
 			if r.URL.Query().Get("state") != state {
 				http.Error(w, "state did not match", http.StatusBadRequest)
+
 				return
 			}
 
 			oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 			if err != nil {
 				http.Error(w, "cannot get token", http.StatusBadRequest)
+
 				return
 			}
 			if !oauth2Token.Valid() {
 				http.Error(w, "token expired", http.StatusBadRequest)
+
 				return
 			}
 
@@ -118,6 +122,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			if err != nil {
 				log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
 				http.Error(w, err.Error(), http.StatusBadRequest)
+
 				return
 			}
 			//fmt.Println(token)
@@ -136,6 +141,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			if err != nil {
 				log.Err(fmt.Errorf("Could not set STS credentials: %s", err)).Msg("server")
 				http.Error(w, err.Error(), http.StatusBadRequest)
+
 				return
 			}
 
@@ -143,6 +149,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			if err != nil {
 				log.Err(fmt.Errorf("Could not get STS credentials: %s", err)).Msg("server")
 				http.Error(w, err.Error(), http.StatusBadRequest)
+
 				return
 			}
 
@@ -160,6 +167,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			html, errAsset := Asset("html/mountingPage.html")
 			if errAsset != nil {
 				http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
 				return
 			}
 
@@ -275,6 +283,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	}
 
 	var b bytes.Buffer
+
 	err = tmpl.Execute(&b, confRClone)
 	if err != nil {
 		panic(err)
@@ -292,6 +301,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	if errMount != nil {
 		panic(errMount)
 	}
+
 	s.rcloneCmd = rcloneCmd
 
 	log.Debug().Str("Mounted on", s.LocalPath).Msg("Server")
