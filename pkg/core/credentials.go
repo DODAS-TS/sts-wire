@@ -59,14 +59,14 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			}
 		} else if t.IAMServer != "" {
 			log.Debug().Str("IAM endpoint used", t.IAMServer).Msg("Credentials")
-			color.Green.Printf("==> IAM endpoint used: %s", t.IAMServer)
+			color.Green.Printf("==> IAM endpoint used: %s\n", t.IAMServer)
 			endpoint = t.IAMServer
 		}
 
 		register := endpoint + "/register"
 
 		log.Debug().Str("IAM register url", register).Msg("Credentials")
-		color.Green.Printf("==> IAM register url: %s", register)
+		color.Green.Printf("==> IAM register url: %s\n", register)
 
 		r, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
 		if err != nil {

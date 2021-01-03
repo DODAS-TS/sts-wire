@@ -59,13 +59,31 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 		return nil, fmt.Errorf("get password enclave %w", errEclBuf)
 	}
 
+	for passEnclave.Size() == 0 {
+		unix.IoctlSetTermios(int(readPasswdFd), ioctlWriteTermios, termios) // nolint: errcheck
+
+		fmt.Printf("\n%s Sorry, but an empty password is not allowed...\n", color.Red.Sprint("[X]==>"))
+		fmt.Print(question)
+
+		readPasswdFd, termios, errCreateReader = readPassword(syscall.Stdin)
+		if errCreateReader != nil {
+			return nil, fmt.Errorf("get password %w", errCreateReader)
+		}
+
+		passEnclave, errEclBuf = memguard.NewBufferFromReaderUntil(readPasswdFd, '\n')
+		if errEclBuf != nil {
+			return nil, fmt.Errorf("get password enclave %w", errEclBuf)
+		}
+	}
+
+	fmt.Println()
+
 	if only4Decription {
 		password = passEnclave.Seal()
 
 		return password, nil
 	}
 
-	fmt.Println()
 	passMsg := fmt.Sprintf("%s Please, insert the password again: ", color.Yellow.Sprint("==>"))
 	fmt.Print(passMsg)
 
@@ -73,6 +91,8 @@ func (t *GetInputWrapper) GetPassword(question string, only4Decription bool) (pa
 	if err != nil {
 		return nil, fmt.Errorf("get password check %w", err)
 	}
+
+	fmt.Println()
 
 	if bytes.Equal(passEnclave.Bytes(), passEnclave2.Bytes()) {
 		password = passEnclave.Seal()
