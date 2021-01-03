@@ -404,9 +404,7 @@ func initConfig() {
 
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("==> sts-wire start")
-	} else {
+	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("==> sts-wire is using config file:", viper.ConfigFileUsed())
 	}
 }
