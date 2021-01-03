@@ -32,8 +32,8 @@ chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin
 ```
 
-- [Go to How to use](#:question:-How-to-use)
-- [Go to Launch the program](#:rocket:-Launch-the-program)
+- [Go to How to use](#How-to-use)
+- [Go to Launch the program](#Launch-the-program)
 
 ### Windows
 
@@ -60,7 +60,7 @@ make build-windows
 make build-macos
 ```
 
-## :question: How to use
+## :question: How to use {#How-to-use}
 
 You can see how to use the program asking for help in the command line:
 
@@ -117,7 +117,7 @@ noPassword: false
 refreshTokenRenew: 10
 insecureConn: false
 ```
-### :rocket: Launch the program
+### :rocket: Launch the program {#Launch-the-program}
 
 In the following example you can see how the program is launched:
 
@@ -126,7 +126,7 @@ In the following example you can see how the program is launched:
 ./sts-wire_linux https://my.iam.server.com myMinio https://myserver.com:9000 / ./mountedVolume
 ```
 
-Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#:question:-How-to-use)
+Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#How-to-use)
 
 ```bash
 ./sts-wire_linux --config myConfig.yml
