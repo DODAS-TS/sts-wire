@@ -1,8 +1,8 @@
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/DODAS-TS/sts-wire)
 
-# STS WIRE 
+# STS WIRE
 
-## Requirements
+## Requirements :information_source:
 
 - fuse installed (Linux and Macos)
   - Linux (Debian or Ubuntu): ` sudo apt install fuse`
@@ -14,7 +14,7 @@
     - Other useful program: [winfsp](https://github.com/billziss-gh/winfsp)
   - Further information on fuse dependency with rclone: [rclone mount](https://rclone.org/commands/rclone_mount/)
 
-## Quick start
+## Quick start :fast_forward:
 
 Download the binary from the latest release on [github](https://github.com/DODAS-TS/sts-wire/releases) and use it from the command line.
 ### Linux
@@ -41,7 +41,13 @@ Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/rele
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
-## Building from source
+### :warning: check your version :warning:
+
+If you were using a beta version, previously of the first release 1.0.0, you need to delete the old configuration instance files to correctly use the program, because they are incompatible with the further versions. If the latest instance name was `myinstance` for example, you can delete the folder with the command `rm -r .myinstance`.
+
+> **Note:** the instance folder is hidden and that's because it starts with the dot (`.`) character. On windows, that folder is normally visible.
+
+## :hammer: Building from source
 
 To compile from the sources you need a [Go](https://golang.org/dl/) version that supports `Go modules` (e.g. `>= v1.12`). You can compile the executable using the `Makefile`:
 
@@ -54,7 +60,7 @@ make build-windows
 make build-macos
 ```
 
-## How to use
+## How to use :question:
 
 You can see how to use the program asking for help in the command line:
 
@@ -111,7 +117,7 @@ noPassword: false
 refreshTokenRenew: 10
 insecureConn: false
 ```
-### Launch the program
+### Launch the program :rocket:
 
 In the following example you can see how the program is launched:
 
@@ -132,7 +138,7 @@ Eventually, if everything went well, on your browser you will be prompted with a
 ![mount response](img/response.png)
 
 The volume will stay mounted untill you exit the running *sts-wire* process with `Ctrl+c`
-## Contributing
+##  :two_men_holding_hands: Contributing :couple::two_women_holding_hands:
 
 If you want to contribute:
 
