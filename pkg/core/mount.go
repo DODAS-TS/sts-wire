@@ -31,7 +31,7 @@ func ExePath() (string, error) {
 		return "", errCacheDir
 	}
 
-	return path.Join(cacheDir, "rclone_osx"), nil
+	return path.Join(cacheDir, "rclone"), nil
 }
 
 func PrepareRclone() error { // nolint: funlen
