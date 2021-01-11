@@ -85,7 +85,7 @@ Flags:
       --debug                   start the program in debug mode
   -h, --help                    help for sts-wire
       --insecureConn            check the http connection certificate
-      --log string              where the log has to write, a file path or stderr (default "/Users/mircotracolli/Library/Application Support/log/sts-wire.log")
+      --log string              where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
       --noPassword              to not encrypt the data with a password
       --refreshTokenRenew int   time span to renew the refresh token in minutes (default 15)
 
