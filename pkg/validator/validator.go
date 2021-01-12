@@ -100,6 +100,10 @@ func RemotePath(remotePath string) (bool, error) {
 
 // LocalPath verify if the path indicated could be a proper mountpoint.
 func LocalPath(localMountPoint string) (bool, error) {
+	if localMountPoint == "/" {
+		return false, ErrNoValidPath
+	}
+
 	if !validPath.MatchString(localMountPoint) {
 		return false, ErrNoValidPath
 	}
@@ -114,12 +118,13 @@ func LocalPath(localMountPoint string) (bool, error) {
 		return false, fmt.Errorf("no valid path: %w", errStat)
 	}
 
-	errMkdir := os.MkdirAll(absPath, os.ModePerm)
-	if errMkdir != nil {
-		return false, fmt.Errorf("no valid path: %w", errStat)
-	}
+	// TODO: better check over folder permissions
+	// errMkdir := os.MkdirAll(absPath, os.ModePerm)
+	// if errMkdir != nil {
+	// 	return false, fmt.Errorf("no valid path: %w", errStat)
+	// }
 
-	os.RemoveAll(absPath)
+	// os.RemoveAll(absPath)
 
 	parentFolder, errStat := os.Stat(filepath.Dir(absPath))
 	if errStat != nil {

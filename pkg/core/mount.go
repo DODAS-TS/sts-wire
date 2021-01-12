@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -100,21 +101,21 @@ func PrepareRclone() error { // nolint: funlen
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, error) { // nolint: funlen
+func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
 	if errPrepare != nil {
 		log.Err(errPrepare).Msg("rclone - mount")
 
-		return nil, errPrepare
+		return nil, nil, "", errPrepare
 	}
 
 	log.Debug().Str("action", "get file path").Msg("rclone - mount")
 
 	rcloneFile, errExePath := ExePath()
 	if errExePath != nil {
-		return nil, errExePath
+		return nil, nil, "", errExePath
 	}
 
 	log.Debug().Str("action", "make local dir").Msg("rclone - mount")
@@ -134,21 +135,21 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	if errConfigPath != nil {
 		log.Err(errConfigPath).Msg("server")
 
-		return nil, errConfigPath
+		return nil, nil, "", errConfigPath
 	}
 
 	logPath, errLogPath := filepath.Abs(path.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
 		log.Err(errLogPath).Msg("server")
 
-		return nil, errLogPath
+		return nil, nil, "", errLogPath
 	}
 
 	localPathAbs, errLocalPath := filepath.Abs(localPath)
 	if errLocalPath != nil {
 		log.Err(errLocalPath).Msg("server")
 
-		return nil, errLocalPath
+		return nil, nil, "", errLocalPath
 	}
 
 	log.Debug().Str("command", strings.Join([]string{
@@ -167,6 +168,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		conf,
 		localPathAbs,
 	}, " ")).Msg("rclone - mount")
+
 	rcloneCmd := exec.Command(
 		rcloneFile,
 		"--config",
@@ -191,5 +193,45 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		panic(errStart)
 	}
 
-	return rcloneCmd, nil
+	cmdErr := make(chan error)
+
+	cmdErrorCheck := func() {
+		defer close(cmdErr)
+
+		err := rcloneCmd.Wait()
+		if err != nil {
+			cmdErr <- err
+		}
+	}
+	go cmdErrorCheck()
+
+	return rcloneCmd, cmdErr, logPath, nil
+}
+
+func RcloneLogErrors(logPath string) chan string {
+	outErrors := make(chan string)
+
+	go func() {
+		defer close(outErrors)
+
+		readFile, err := os.Open(logPath)
+
+		if err != nil {
+			log.Err(err).Str("logFile", logFile).Msg("failed to open log file")
+		}
+
+		defer readFile.Close()
+
+		fileScanner := bufio.NewScanner(readFile)
+		fileScanner.Split(bufio.ScanLines)
+
+		for fileScanner.Scan() {
+			curLine := fileScanner.Text()
+			if strings.Contains(curLine, "error") {
+				outErrors <- fileScanner.Text()
+			}
+		}
+	}()
+
+	return outErrors
 }

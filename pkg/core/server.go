@@ -51,6 +51,8 @@ type Server struct {
 	Response          ClientResponse
 	RefreshTokenRenew int
 	rcloneCmd         *exec.Cmd
+	rcloneErrChan     chan error
+	rcloneLogPath     string
 }
 
 // Start ..
@@ -297,12 +299,14 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		panic(err)
 	}
 
-	rcloneCmd, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
 	if errMount != nil {
 		panic(errMount)
 	}
 
 	s.rcloneCmd = rcloneCmd
+	s.rcloneErrChan = errChan
+	s.rcloneLogPath = logPath
 
 	log.Debug().Str("Mounted on", s.LocalPath).Msg("Server")
 	color.Green.Printf("==> Volume mounted at %s\n", s.LocalPath)
@@ -404,15 +408,27 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 		case <-signalChan:
 			color.Red.Println("\r==> Wait a moment, service is exiting...")
 			log.Debug().Msg("UpdateTokenLoop interrupt signa!")
+
 			loop = false
 
 			log.Debug().Msg("Interrupt rclone process")
+
 			_ = s.rcloneCmd.Process.Signal(os.Interrupt)
 
 			status, _ := s.rcloneCmd.Process.Wait()
 			if !status.Exited() {
 				panic("rclone termination error")
 			}
+		case <-s.rcloneErrChan:
+			loop = false
+
+			for errorString := range RcloneLogErrors(s.rcloneLogPath) {
+				log.Debug().Str("log string", errorString).Msg("rclone error")
+			}
+
+			color.Red.Println("==> Sorry, but rclone exited with errors.")
+			color.Yellow.Println("==> Check the logs for more details...")
+			color.Green.Println("==> Program will exit immediately!")
 		default:
 		}
 
