@@ -213,6 +213,42 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		default:
 		}
 
+		if procState != nil {
+			// ref: https://rclone.org/docs/#exit-code
+			switch exitCode := procState.ExitCode(); exitCode {
+			case 0:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("success")
+			case 1:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Syntax or usage error")
+			case 2:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Error not otherwise categorised")
+			case 3:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Directory not found")
+			case 4:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("File not found")
+			case 5:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Temporary error (one that more retries might fix) (Retry errors)")
+			case 6:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Less serious errors (like 461 errors from dropbox) (NoRetry errors)")
+			case 7:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Fatal error (one that more retries won't fix, like account suspended) (Fatal errors)")
+			case 8:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Transfer exceeded - limit set by --max-transfer reached")
+			case 9:
+				log.Debug().Int("exitCode",
+					exitCode).Msg("Operation successful, but no files transferred")
+			}
+		}
+
 		if openChannel { //nolint:nestif
 			// rclone exited with errors
 			if errWait != nil {
