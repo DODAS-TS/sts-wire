@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/DODAS-TS/sts-wire/pkg/rclone"
 	"github.com/rs/zerolog/log"
@@ -69,7 +70,7 @@ func PrepareRclone() error { // nolint: funlen
 		return fmt.Errorf("prepare rclone %w", errMkdir)
 	}
 
-	rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE, fileMode)
+	rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE|os.O_SYNC, fileMode)
 	if errCreate != nil {
 		log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
 
@@ -129,6 +130,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	}
 
 	conf := fmt.Sprintf("%s:%s", instance, remotePath)
+
 	log.Debug().Str("action", "prepare mounting points").Msg("rclone - mount")
 
 	configPathAbs, errConfigPath := filepath.Abs(path.Join(configPath, "/rclone.conf"))
@@ -196,11 +198,38 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	cmdErr := make(chan error)
 
 	cmdErrorCheck := func() {
-		defer close(cmdErr)
+		procState, errWait := rcloneCmd.Process.Wait()
 
-		err := rcloneCmd.Wait()
-		if err != nil {
-			cmdErr <- err
+		// Wait for main server to close channel if User pressed Ctrl+C
+		time.Sleep(2 * time.Second)
+
+		openChannel := true
+		// Check if channel still is open
+		select {
+		case _, ok := <-cmdErr:
+			if !ok {
+				openChannel = false
+			}
+		default:
+		}
+
+		if openChannel { //nolint:nestif
+			// rclone exited with errors
+			if errWait != nil {
+				cmdErr <- errWait
+			}
+
+			defer close(cmdErr)
+		} else {
+			if errWait == nil {
+				// rclone not exited after user pressed Ctrl+C
+				if !procState.Exited() {
+					panic("rclone termination error")
+				}
+			} else if errWait.Error() != "wait: no child processes" {
+				// rclone exited for unknown reason
+				panic(errWait)
+			}
 		}
 	}
 	go cmdErrorCheck()

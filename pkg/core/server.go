@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"text/template"
 	"time"
 
@@ -474,24 +475,27 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 			loop = false
 
+			close(s.rcloneErrChan)
+
 			log.Debug().Msg("Interrupt rclone process")
 
-			_ = s.rcloneCmd.Process.Signal(os.Interrupt)
-
-			status, _ := s.rcloneCmd.Process.Wait()
-			if !status.Exited() {
-				panic("rclone termination error")
+			errCmdInterrupt := s.rcloneCmd.Process.Signal(os.Interrupt)
+			if errCmdInterrupt != nil && !strings.Contains(errCmdInterrupt.Error(), "process already finished") {
+				panic(errCmdInterrupt)
 			}
 		case <-s.rcloneErrChan:
+			log.Debug().Msg("Unexpected rclone process exit")
+
 			loop = false
 
 			for errorString := range RcloneLogErrors(s.rcloneLogPath) {
 				log.Debug().Str("log string", errorString).Msg("rclone error")
 			}
 
-			color.Red.Println("==> Sorry, but rclone exited with errors.")
+			color.Red.Println("==> Sorry, but rclone exited with errors")
 			color.Yellow.Println("==> Check the logs for more details...")
 			color.Green.Println("==> Program will exit immediately!")
+
 		default:
 		}
 
