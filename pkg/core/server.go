@@ -105,12 +105,41 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 			oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 			if err != nil {
-				http.Error(w, "cannot get token", http.StatusBadRequest)
+				log.Err(err).Msg("server")
+
+				html, errAsset := Asset("html/errorNoToken.html")
+				if errAsset != nil {
+					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusBadRequest)
+
+				_, errWrite := w.Write(html)
+				if errWrite != nil {
+					panic(errWrite)
+				}
 
 				return
 			}
+
 			if !oauth2Token.Valid() {
-				http.Error(w, "token expired", http.StatusBadRequest)
+				log.Err(nil).Bool("tokenValid", oauth2Token.Valid()).Msg("server")
+
+				html, errAsset := Asset("html/errorTokenExpired.html")
+				if errAsset != nil {
+					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusBadRequest)
+
+				_, errWrite := w.Write(html)
+				if errWrite != nil {
+					panic(errWrite)
+				}
 
 				return
 			}
@@ -120,10 +149,23 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			credsIAM.AccessToken = token
 			credsIAM.RefreshToken = oauth2Token.Extra("refresh_token").(string)
 
-			err = ioutil.WriteFile(".token", []byte(token), 0600)
-			if err != nil {
-				log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
-				http.Error(w, err.Error(), http.StatusBadRequest)
+			errWriteToken := ioutil.WriteFile(".token", []byte(token), 0600)
+			if errWriteToken != nil {
+				log.Err(fmt.Errorf("Could not save token file: %s", errWriteToken)).Msg("server")
+
+				html, errAsset := Asset("html/errorNoSaveToken.html")
+				if errAsset != nil {
+					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusBadRequest)
+
+				_, errWrite := w.Write(html)
+				if errWrite != nil {
+					panic(errWrite)
+				}
 
 				return
 			}
@@ -140,17 +182,24 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 
 			sts := credentials.NewChainCredentials(providers)
-			if err != nil {
-				log.Err(fmt.Errorf("Could not set STS credentials: %s", err)).Msg("server")
-				http.Error(w, err.Error(), http.StatusBadRequest)
 
-				return
-			}
+			creds, errSts := sts.Get()
+			if errSts != nil {
+				log.Err(fmt.Errorf("Could not get STS credentials: %s", errSts)).Msg("server")
 
-			creds, err := sts.Get()
-			if err != nil {
-				log.Err(fmt.Errorf("Could not get STS credentials: %s", err)).Msg("server")
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				html, errAsset := Asset("html/errorNoStsCred.html")
+				if errAsset != nil {
+					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusBadRequest)
+
+				_, errWrite := w.Write(html)
+				if errWrite != nil {
+					panic(errWrite)
+				}
 
 				return
 			}
@@ -159,9 +208,24 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 			response := make(map[string]interface{})
 			response["credentials"] = creds
-			_, err = json.MarshalIndent(response, "", "\t")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+			_, errMarshall := json.MarshalIndent(response, "", "\t")
+			if errMarshall != nil {
+				log.Err(errMarshall).Msg("server")
+
+				html, errAsset := Asset("html/errorNoCred.html")
+				if errAsset != nil {
+					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+
+					return
+				}
+
+				w.WriteHeader(http.StatusInternalServerError)
+
+				_, errWrite := w.Write(html)
+				if errWrite != nil {
+					panic(errWrite)
+				}
+
 				return
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
@@ -174,6 +238,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 
 			_, errWrite := w.Write(html)
+			if errWrite != nil {
+				panic(errWrite)
+			}
 			if errWrite != nil {
 				panic(errWrite)
 			}
@@ -249,10 +316,6 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		}
 
 		sts := credentials.NewChainCredentials(providers)
-		if err != nil {
-			log.Err(fmt.Errorf("Could not set STS credentials: %s", err)).Msg("server")
-			panic(err)
-		}
 
 		creds, err := sts.Get()
 		if err != nil {

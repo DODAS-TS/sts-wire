@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gookit/color"
 	"github.com/minio/minio-go/v6/pkg/credentials"
 	"github.com/minio/minio/pkg/auth"
 	"github.com/rs/zerolog/log"
@@ -84,7 +85,7 @@ type WebIdentityResult struct {
 }
 
 // Retrieve credentials.
-func (t *IAMProvider) Retrieve() (credentials.Value, error) {
+func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 	log.Debug().Msg("IAM - Retrieve")
 
 	body := url.Values{}
@@ -114,7 +115,14 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 
 	resp, errDo := t.HTTPClient.Do(&req)
 	if errDo != nil {
-		log.Err(errDo).Msg("IAM")
+		log.Err(errDo).Msg("IAM connect client")
+
+		if strings.Contains(errDo.Error(), "connection refused") {
+			color.Red.Println(fmt.Sprintf("==> Cannot connect to '%s'", url))
+			color.Red.Println(fmt.Sprintf("==> Verify your IAM client", url))
+
+			panic("IAM client connection")
+		}
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errDo)
 	}
@@ -124,7 +132,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 
 	rbody, errRead := ioutil.ReadAll(resp.Body)
 	if errRead != nil {
-		log.Err(errRead).Msg("IAM")
+		log.Err(errRead).Msg("IAM read body")
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errRead)
 	}
@@ -135,7 +143,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) {
 
 	errUnmarshall := xml.Unmarshal(rbody, t.Creds)
 	if errUnmarshall != nil {
-		log.Err(errUnmarshall).Msg("IAM")
+		log.Err(errUnmarshall).Msg("IAM xml unmarshal")
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errUnmarshall)
 	}
