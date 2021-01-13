@@ -3,8 +3,11 @@ package core
 import (
 	"bufio"
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -36,6 +39,47 @@ func ExePath() (string, error) {
 	return path.Join(cacheDir, "rclone"), nil
 }
 
+func CheckExeFile(rcloneFile string, originalData []byte) error {
+	rcloneExeFile, errRead := ioutil.ReadFile(rcloneFile)
+	if errRead != nil {
+		log.Err(errRead).Msg("Cannot read rclone executable in cache dir")
+
+		return fmt.Errorf("prepare rclone %w", errRead)
+	}
+
+	curExe := md5.New() //nolint:gosec
+
+	_, errWriteCurExe := io.Copy(curExe, bytes.NewReader(rcloneExeFile))
+	if errWriteCurExe != nil {
+		log.Err(errWriteCurExe).Msg("Cannot calculate md5 for rclone executable in cache dir")
+
+		return fmt.Errorf("prepare rclone %w", errWriteCurExe)
+	}
+
+	rcloneExe := md5.New() //nolint:gosec
+
+	_, errWriteRcloneExe := io.Copy(rcloneExe, bytes.NewReader(originalData))
+	if errWriteRcloneExe != nil {
+		log.Err(errWriteRcloneExe).Msg("Cannot calculate md5 for original rclone")
+
+		return fmt.Errorf("prepare rclone %w", errWriteRcloneExe)
+	}
+
+	rcloneMd5 := curExe.Sum(nil)
+	originalMd5 := rcloneExe.Sum(nil)
+	log.Debug().Str("rcloneMd5",
+		hex.EncodeToString(rcloneMd5)).Str("originalMd5",
+		hex.EncodeToString(originalMd5)).Msg("rclone - executble checksum")
+
+	if !bytes.Equal(rcloneMd5, originalMd5) {
+		log.Err(nil).Msg("checksum not equal")
+
+		return fmt.Errorf("checksum not equal %w", errRead)
+	}
+
+	return nil
+}
+
 func PrepareRclone() error { // nolint: funlen
 	baseDir, errCacheDir := CacheDir()
 	if errCacheDir != nil {
@@ -61,7 +105,7 @@ func PrepareRclone() error { // nolint: funlen
 		return fmt.Errorf("prepare rclone %w", errAsset)
 	}
 
-	log.Debug().Msg("rclone - create executable")
+	log.Debug().Msg("rclone - create executable base directories")
 
 	errMkdir := os.MkdirAll(baseDir, os.ModePerm)
 	if errMkdir != nil && !os.IsExist(errMkdir) {
@@ -70,33 +114,59 @@ func PrepareRclone() error { // nolint: funlen
 		return fmt.Errorf("prepare rclone %w", errMkdir)
 	}
 
-	rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE|os.O_SYNC, fileMode)
-	if errCreate != nil {
-		log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
+	_, errStat := os.Stat(rcloneFile)
+	log.Debug().Bool("missingExe", os.IsNotExist(errStat)).Msg("rclone")
 
-		return fmt.Errorf("prepare rclone %w", errCreate)
+	if errStat != nil && os.IsNotExist(errStat) { //nolint:nestif
+		log.Debug().Msg("rclone - creating executable")
+
+		rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE|os.O_SYNC, fileMode)
+		if errCreate != nil {
+			log.Err(errCreate).Msg("Cannot open with write permission the rclone executable in cache dir")
+
+			// file busy
+			if strings.Contains(errCreate.Error(), "file busy") {
+				// wait a bit
+				time.Sleep(5 * time.Second)
+				// check exe file
+				return CheckExeFile(rcloneFile, data)
+			}
+
+			log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
+
+			return fmt.Errorf("prepare rclone %w", errCreate)
+		}
+
+		buff := bytes.NewReader(data)
+		writtenData, errWrite := io.Copy(rcloneExeFile, buff)
+
+		log.Debug().Int64("writtenData", writtenData).Msg("rclone")
+
+		if errWrite != nil {
+			log.Err(errWrite).Msg("Cannot write rclone executable in cache dir")
+
+			return fmt.Errorf("prepare rclone %w", errWrite)
+		}
+
+		rcloneExeFile.Close()
+
+		log.Debug().Msg("rclone - change executable mod")
+
+		errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
+		if errChmod != nil {
+			log.Err(errChmod).Msg("Cannot make rclone an executable in cache dir")
+
+			return fmt.Errorf("prepare rclone %w", errChmod)
+		}
 	}
 
-	buff := bytes.NewReader(data)
-	writtenData, errWrite := io.Copy(rcloneExeFile, buff)
+	log.Debug().Msg("rclone - verify executable")
 
-	log.Debug().Int64("writtenData", writtenData).Msg("rclone")
+	errCheck := CheckExeFile(rcloneFile, data)
+	if errCheck != nil {
+		log.Err(errCheck).Msg("Cannot verify rclone executable in cache dir")
 
-	if errWrite != nil {
-		log.Err(errWrite).Msg("Cannot write rclone executable in cache dir")
-
-		return fmt.Errorf("prepare rclone %w", errWrite)
-	}
-
-	rcloneExeFile.Close()
-
-	log.Debug().Msg("rclone - change executable mod")
-
-	errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
-	if errChmod != nil {
-		log.Err(errChmod).Msg("Cannot make rclone an executable in cache dir")
-
-		return fmt.Errorf("prepare rclone %w", errChmod)
+		return fmt.Errorf("prepare rclone %w", errCheck)
 	}
 
 	return nil
