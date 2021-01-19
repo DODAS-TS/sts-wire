@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -40,7 +39,18 @@ func ExePath() (string, error) {
 }
 
 func CheckExeFile(rcloneFile string, originalData []byte) error {
-	rcloneExeFile, errRead := ioutil.ReadFile(rcloneFile)
+	var rcloneExeFile bytes.Buffer
+
+	rcloneFileReader, errOpen := os.Open(rcloneFile)
+	if errOpen != nil {
+		log.Err(errOpen).Msg("Cannot open rclone executable in cache dir")
+
+		return fmt.Errorf("prepare rclone %w", errOpen)
+	}
+
+	defer rcloneFileReader.Close()
+
+	_, errRead := rcloneExeFile.ReadFrom(rcloneFileReader)
 	if errRead != nil {
 		log.Err(errRead).Msg("Cannot read rclone executable in cache dir")
 
@@ -49,7 +59,7 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 
 	curExe := md5.New() //nolint:gosec
 
-	_, errWriteCurExe := io.Copy(curExe, bytes.NewReader(rcloneExeFile))
+	_, errWriteCurExe := io.Copy(curExe, bytes.NewReader(rcloneExeFile.Bytes()))
 	if errWriteCurExe != nil {
 		log.Err(errWriteCurExe).Msg("Cannot calculate md5 for rclone executable in cache dir")
 

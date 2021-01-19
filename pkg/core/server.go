@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -150,9 +149,23 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			credsIAM.AccessToken = token
 			credsIAM.RefreshToken = oauth2Token.Extra("refresh_token").(string)
 
-			errWriteToken := ioutil.WriteFile(".token", []byte(token), 0600)
-			if errWriteToken != nil {
-				log.Err(fmt.Errorf("Could not save token file: %s", errWriteToken)).Msg("server")
+			curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
+			_, err = curFile.Write([]byte(token))
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
+			err = curFile.Close()
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
+			if err != nil {
+				log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
 
 				html, errAsset := Asset("html/errorNoSaveToken.html")
 				if errAsset != nil {
@@ -170,6 +183,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 				return
 			}
+
 			//fmt.Println(token)
 
 			//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
@@ -299,8 +313,23 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		credsIAM.AccessToken = token
 		credsIAM.RefreshToken = os.Getenv("REFRESH_TOKEN")
 
-		fmt.Printf("Writing down token: %s", token)
-		err := ioutil.WriteFile(".token", []byte(token), 0600)
+		log.Info().Str("token", token).Msg("Writing down token")
+
+		curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			log.Err(err).Msg("server - token file")
+		}
+
+		_, err = curFile.Write([]byte(token))
+		if err != nil {
+			log.Err(err).Msg("server - token file")
+		}
+
+		err = curFile.Close()
+		if err != nil {
+			log.Err(err).Msg("server - token file")
+		}
+
 		if err != nil {
 			log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
 			panic(err)
@@ -358,7 +387,23 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	rclone := b.String()
 	log.Debug().Str("rclone config", rclone).Msg("server")
 
-	err = ioutil.WriteFile(s.Client.ConfDir+"/"+"rclone.conf", []byte(rclone), 0600)
+	filename := s.Client.ConfDir + "/" + "rclone.conf"
+
+	curFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Err(err).Msg("server - rclone conf file")
+	}
+
+	_, err = curFile.Write([]byte(rclone))
+	if err != nil {
+		log.Err(err).Msg("server - rclone conf file")
+	}
+
+	err = curFile.Close()
+	if err != nil {
+		log.Err(err).Msg("server - rclone conf file")
+	}
+
 	if err != nil {
 		panic(err)
 	}
@@ -438,11 +483,16 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 			if err != nil {
 				panic(err)
 			}
+
+			defer r.Body.Close()
 			//fmt.Println(r.StatusCode, r.Status)
 
-			var bodyJSON RefreshTokenStruct
+			var (
+				bodyJSON RefreshTokenStruct
+				rbody    bytes.Buffer
+			)
 
-			rbody, err := ioutil.ReadAll(r.Body)
+			_, err = rbody.ReadFrom(r.Body)
 			if err != nil {
 				panic(err)
 			}
@@ -450,7 +500,7 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 			//fmt.Println(string(rbody))
 
 			//fmt.Println(string(rbody))
-			err = json.Unmarshal(rbody, &bodyJSON)
+			err = json.Unmarshal(rbody.Bytes(), &bodyJSON)
 			if err != nil {
 				panic(err)
 			}
@@ -460,12 +510,24 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 
 			//fmt.Println(bodyJSON.AccessToken)
 
-			err = ioutil.WriteFile(".token", []byte(bodyJSON.AccessToken), 0600)
+			curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
+			_, err = curFile.Write([]byte(bodyJSON.AccessToken))
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
+			err = curFile.Close()
+			if err != nil {
+				log.Err(err).Msg("server - token file")
+			}
+
 			if err != nil {
 				panic(err)
 			}
-
-			r.Body.Close()
 		}
 
 		select {

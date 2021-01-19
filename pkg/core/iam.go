@@ -1,11 +1,11 @@
 package core
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -47,7 +47,7 @@ func RandomState() string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-// IAMProvider credential provider for oidc
+// IAMProvider credential provider for oidc.
 type IAMProvider struct {
 	StsEndpoint       string
 	HTTPClient        *http.Client
@@ -119,7 +119,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 
 		if strings.Contains(errDo.Error(), "connection refused") {
 			color.Red.Println(fmt.Sprintf("==> Cannot connect to '%s'", url))
-			color.Red.Println(fmt.Sprintf("==> Verify your IAM client", url))
+			color.Red.Println("==> Verify your IAM client")
 
 			panic("IAM client connection")
 		}
@@ -130,18 +130,20 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 
 	log.Debug().Int("statusCode", resp.StatusCode).Str("status", resp.Status).Msg("IAM")
 
-	rbody, errRead := ioutil.ReadAll(resp.Body)
+	var rbody bytes.Buffer
+
+	_, errRead := rbody.ReadFrom(resp.Body)
 	if errRead != nil {
 		log.Err(errRead).Msg("IAM read body")
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errRead)
 	}
 
-	log.Debug().Str("body", string(rbody)).Msg("IAM")
+	log.Debug().Str("body", rbody.String()).Msg("IAM")
 
 	t.Creds = &AssumeRoleWithWebIdentityResponse{}
 
-	errUnmarshall := xml.Unmarshal(rbody, t.Creds)
+	errUnmarshall := xml.Unmarshal(rbody.Bytes(), t.Creds)
 	if errUnmarshall != nil {
 		log.Err(errUnmarshall).Msg("IAM xml unmarshal")
 
@@ -155,7 +157,6 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 		SecretAccessKey: t.Creds.Result.Credentials.SecretKey,
 		SessionToken:    t.Creds.Result.Credentials.SessionToken,
 	}, nil
-
 }
 
 // IsExpired test.

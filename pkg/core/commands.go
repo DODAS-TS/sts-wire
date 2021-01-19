@@ -240,6 +240,8 @@ var (
 			log.Debug().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
 
 			// Create a CA certificate pool and add cert.pem to it
+			// TODO: convert ioutil.ReadFile to os
+			// 		 ref: https://www.srcbeat.com/2021/01/golang-ioutil-deprecated/
 			// caCert, err := ioutil.ReadFile("MINIO.pem")
 			// if err != nil {
 			//	log.Fatal(err)

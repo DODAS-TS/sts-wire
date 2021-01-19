@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -26,12 +25,15 @@ type InitClientConfig struct {
 	NoPWD          bool
 }
 
-func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) {
-	rbody, err := ioutil.ReadFile(t.ConfDir + "/" + instance + ".json")
+func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,gocognit,lll
+	filename := t.ConfDir + "/" + instance + ".json"
+
+	log.Debug().Str("filename", filename).Msg("InitClient - read conf file")
+
+	confFile, err := os.Open(filename)
 
 	switch {
-
-	case err != nil:
+	case err != nil && err.Error() != "no such file or directory":
 		tmpl, errParser := template.New("client").Parse(t.ClientTemplate)
 		if errParser != nil {
 			panic(errParser)
@@ -78,14 +80,17 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		log.Debug().Int("StatusCode", resp.StatusCode).Str("Status", resp.Status).Msg("credentials")
 
-		rbody, errReadBody := ioutil.ReadAll(resp.Body)
-		if errReadBody != nil {
-			panic(errReadBody)
+		var rbody bytes.Buffer
+
+		_, err = rbody.ReadFrom(resp.Body)
+		if err != nil {
+			log.Err(err).Msg("credentials - read body")
+			panic(err)
 		}
 
-		log.Debug().Str("body", string(rbody)).Msg("credentials")
+		log.Debug().Str("body", rbody.String()).Msg("credentials")
 
-		errUnmarshall := json.Unmarshal(rbody, &clientResponse)
+		errUnmarshall := json.Unmarshal(rbody.Bytes(), &clientResponse)
 		if errUnmarshall != nil {
 			panic(errUnmarshall)
 		}
@@ -107,15 +112,42 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 				passwd = memguard.NewEnclave([]byte("nopassword"))
 			}
 
-			dumpClient := Encrypt(rbody, passwd)
+			dumpClient := Encrypt(rbody.Bytes(), passwd)
 
-			err = ioutil.WriteFile(t.ConfDir+"/"+instance+".json", dumpClient, 0600)
+			filename := t.ConfDir + "/" + instance + ".json"
+
+			curFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 			if err != nil {
+				log.Err(err).Msg("credentials - dump client")
+
+				panic(err)
+			}
+
+			_, err = curFile.Write(dumpClient)
+			if err != nil {
+				log.Err(err).Msg("credentials - dump client")
+
+				panic(err)
+			}
+
+			err = curFile.Close()
+			if err != nil {
+				log.Err(err).Msg("credentials - dump client")
+
 				panic(err)
 			}
 		}
 	case err == nil && !t.NoPWD:
 		var errGetPasswd error
+		defer confFile.Close()
+
+		var rbody bytes.Buffer
+
+		_, err = rbody.ReadFrom(confFile)
+		if err != nil {
+			log.Err(err).Msg("InitClient - read conf file")
+			panic(err)
+		}
 
 		// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 		if os.Getenv("REFRESH_TOKEN") == "" {
@@ -129,13 +161,16 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			passwd = memguard.NewEnclave([]byte("nopassword"))
 		}
 
-		errUnmarshal := json.Unmarshal(Decrypt(rbody, passwd), &clientResponse)
+		errUnmarshal := json.Unmarshal(Decrypt(rbody.Bytes(), passwd), &clientResponse)
 		if errUnmarshal != nil {
 			panic(errUnmarshal)
 		}
 
 		log.Debug().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
 		endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
+	default:
+		log.Err(err).Msg("InitClient - read conf file")
+		panic(err)
 	}
 
 	if endpoint == "" {
