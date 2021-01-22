@@ -20,14 +20,14 @@ Download the binary from the latest release on [github](https://github.com/DODAS
 ### Linux
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.7/sts-wire_linux
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.8/sts-wire_linux
 chmod +x sts-wire_linux
 mv sts-wire_linux /usr/local/bin
 ```
 ### MacOS
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.7/sts-wire_osx
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.8/sts-wire_osx
 chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin
 ```
@@ -37,7 +37,7 @@ mv sts-wire_osx /usr/local/bin
 
 ### Windows
 
-Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.7/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.7/sts-wire_windows)
+Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.8/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.8/sts-wire_windows)
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
@@ -138,6 +138,20 @@ Eventually, if everything went well, on your browser you will be prompted with a
 ![mount response](img/response.png)
 
 The volume will stay mounted untill you exit the running *sts-wire* process with `Ctrl+c`
+
+### :hourglass: Renew with Refresh Token
+
+The following is an example of use when you already have an access token, and you want to renew it with a refresh token:
+
+```bash
+ACCESS_TOKEN=your_access_token \
+IAM_CLIENT_SECRET=iam_secret \
+IAM_SERVER=iam_server \
+IAM_CLIENT_ID=iam_client_id \
+REFRESH_TOKEN=refresh_token \
+./sts-wire_linux ${IAM_SERVER} myMinio https://myserver.com:9000 / ./mountedVolume --log .example.log  --noPassword
+```
+
 ##  :two_men_holding_hands: Contributing :couple::two_women_holding_hands:
 
 If you want to contribute:
