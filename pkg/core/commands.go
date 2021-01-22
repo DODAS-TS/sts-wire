@@ -308,6 +308,11 @@ var (
 				panic(errStart)
 			}
 
+			if refreshToken := os.Getenv("REFRESH_TOKEN"); refreshToken != "" {
+				log.Debug().Str("refreshToken", refreshToken).Msg("Force refresh token call")
+				server.RefreshToken(clientResponse, credsIAM, endpoint)
+			}
+
 			color.Green.Printf("==> Server started successfully and volume mounted at %s\n", localMountPath)
 
 			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)

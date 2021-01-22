@@ -58,12 +58,12 @@ type Server struct {
 // Start ..
 func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: funlen, gocognit
 	state := RandomState()
-	isByHand := os.Getenv("REFRESH_TOKEN")
+	refreshToken := os.Getenv("REFRESH_TOKEN")
 	credsIAM := IAMCreds{}
 	endpoint := s.Endpoint
 	clientResponse := s.Response
 
-	if isByHand == "" { //nolint:nestif
+	if refreshToken == "" { //nolint:nestif
 		endpoint := s.Endpoint
 		clientResponse := s.Response
 
@@ -308,39 +308,43 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 		<-idleConnsClosed
 	} else {
-		token := os.Getenv("ACCESS_TOKEN")
+		accessToken := os.Getenv("ACCESS_TOKEN")
 
-		credsIAM.AccessToken = token
+		credsIAM.AccessToken = accessToken
 		credsIAM.RefreshToken = os.Getenv("REFRESH_TOKEN")
 
-		log.Info().Str("token", token).Msg("Writing down token")
+		log.Debug().Str("refreshToken",
+			refreshToken).Str("accessToken",
+			accessToken).Msg("Writing down access token")
+
+		// cwd, _ := os.Getwd()
+		// fmt.Printf("\nWORKING DIR %s\n", cwd)
 
 		curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			log.Err(err).Msg("server - token file")
+			log.Err(err).Msg("server - create access token file")
 		}
 
-		_, err = curFile.Write([]byte(token))
+		_, err = curFile.Write([]byte(accessToken))
 		if err != nil {
-			log.Err(err).Msg("server - token file")
+			log.Err(err).Msg("server - write accesstoken file")
 		}
 
 		err = curFile.Close()
 		if err != nil {
-			log.Err(err).Msg("server - token file")
+			log.Err(err).Msg("server - close access token file")
 		}
 
 		if err != nil {
 			log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
 			panic(err)
 		}
-		//fmt.Println(token)
 
 		//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
 		providers := []credentials.Provider{
 			&IAMProvider{ // nolint:exhaustivestruct
 				StsEndpoint: s.S3Endpoint,
-				Token:       token,
+				Token:       accessToken,
 				HTTPClient:  &s.Client.HTTPClient,
 			},
 		}
@@ -443,6 +447,80 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	return clientResponse, credsIAM, endpoint, nil
 }
 
+func (s *Server) RefreshToken(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) {
+	v := url.Values{}
+
+	//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
+
+	v.Set("client_id", clientResponse.ClientID)
+	v.Set("client_secret", clientResponse.ClientSecret)
+	v.Set("grant_type", "refresh_token")
+	v.Set("refresh_token", credsIAM.RefreshToken)
+
+	url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
+	if err != nil {
+		panic(err)
+	}
+
+	//fmt.Println(url.String())
+
+	req := http.Request{ // nolint:exhaustivestruct
+		Method: "POST",
+		URL:    url,
+	}
+
+	// TODO: retrieve token with https POST with t.httpClient
+	r, err := s.Client.HTTPClient.Do(&req)
+	if err != nil {
+		panic(err)
+	}
+
+	defer r.Body.Close()
+	//fmt.Println(r.StatusCode, r.Status)
+
+	var (
+		bodyJSON RefreshTokenStruct
+		rbody    bytes.Buffer
+	)
+
+	_, err = rbody.ReadFrom(r.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	//fmt.Println(string(rbody))
+
+	//fmt.Println(string(rbody))
+	err = json.Unmarshal(rbody.Bytes(), &bodyJSON)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO:
+	//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
+
+	//fmt.Println(bodyJSON.AccessToken)
+
+	curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		log.Err(err).Msg("server - token file")
+	}
+
+	_, err = curFile.Write([]byte(bodyJSON.AccessToken))
+	if err != nil {
+		log.Err(err).Msg("server - token file")
+	}
+
+	err = curFile.Close()
+	if err != nil {
+		log.Err(err).Msg("server - token file")
+	}
+
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) { //nolint:funlen
 	loop := true
 	signalChan := make(chan os.Signal, 1)
@@ -457,77 +535,8 @@ func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCred
 	for loop {
 		if time.Since(startT)+deltaCheckTokenRefresh >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
 			startT = time.Now()
-			v := url.Values{}
 
-			//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
-
-			v.Set("client_id", clientResponse.ClientID)
-			v.Set("client_secret", clientResponse.ClientSecret)
-			v.Set("grant_type", "refresh_token")
-			v.Set("refresh_token", credsIAM.RefreshToken)
-
-			url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
-			if err != nil {
-				panic(err)
-			}
-
-			//fmt.Println(url.String())
-
-			req := http.Request{ // nolint:exhaustivestruct
-				Method: "POST",
-				URL:    url,
-			}
-
-			// TODO: retrieve token with https POST with t.httpClient
-			r, err := s.Client.HTTPClient.Do(&req)
-			if err != nil {
-				panic(err)
-			}
-
-			defer r.Body.Close()
-			//fmt.Println(r.StatusCode, r.Status)
-
-			var (
-				bodyJSON RefreshTokenStruct
-				rbody    bytes.Buffer
-			)
-
-			_, err = rbody.ReadFrom(r.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			//fmt.Println(string(rbody))
-
-			//fmt.Println(string(rbody))
-			err = json.Unmarshal(rbody.Bytes(), &bodyJSON)
-			if err != nil {
-				panic(err)
-			}
-
-			// TODO:
-			//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
-
-			//fmt.Println(bodyJSON.AccessToken)
-
-			curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-			if err != nil {
-				log.Err(err).Msg("server - token file")
-			}
-
-			_, err = curFile.Write([]byte(bodyJSON.AccessToken))
-			if err != nil {
-				log.Err(err).Msg("server - token file")
-			}
-
-			err = curFile.Close()
-			if err != nil {
-				log.Err(err).Msg("server - token file")
-			}
-
-			if err != nil {
-				panic(err)
-			}
+			s.RefreshToken(clientResponse, credsIAM, endpoint)
 		}
 
 		select {
