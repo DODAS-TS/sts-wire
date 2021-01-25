@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"io"
+	"strings"
 
 	"github.com/awnumar/memguard"
 	"github.com/denisbrodbeck/machineid"
@@ -19,7 +20,12 @@ func CreateHash(key string) string {
 
 	id, errID := machineid.ProtectedID("sts-wire")
 	if errID != nil {
-		panic(errID)
+		if strings.Contains(errID.Error(), "open /etc/machine-id: no such file or directory") {
+			id = "notAMachine"
+			log.Debug().Str("machineID", id).Msg("Cannot create an hash for the machine")
+		} else {
+			panic(errID)
+		}
 	}
 
 	hasher := hmac.New(md5.New, []byte(id))
