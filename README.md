@@ -68,7 +68,7 @@ You can see how to use the program asking for help in the command line:
 
 ```bash
 # Linux example
-./sts-wire_linux -h
+./sts-wire -h
 ```
 
 The result of the above command will be something similar to this:
@@ -125,13 +125,13 @@ In the following example you can see how the program is launched:
 
 ```bash
 # Linux example
-./sts-wire_linux https://my.iam.server.com myMinio https://myserver.com:9000 / ./mountedVolume
+./sts-wire https://my.iam.server.com myMinio https://myserver.com:9000 / ./mountedVolume
 ```
 
 Alternatively, you can use a config file name myConfig.yml with the same values as shown in [how to use section](#question-How-to-use)
 
 ```bash
-./sts-wire_linux --config myConfig.yml
+./sts-wire --config myConfig.yml
 ```
 
 After that, you have to follow all the instructions and providing a password for credentials encryption when requested.
@@ -151,7 +151,7 @@ IAM_CLIENT_SECRET=iam_secret \
 IAM_SERVER=iam_server \
 IAM_CLIENT_ID=iam_client_id \
 REFRESH_TOKEN=refresh_token \
-./sts-wire_linux ${IAM_SERVER} myMinio https://myserver.com:9000 / ./mountedVolume --log .example.log  --noPassword
+./sts-wire ${IAM_SERVER} myMinio https://myserver.com:9000 / ./mountedVolume --log .example.log  --noPassword
 ```
 
 ##  :two_men_holding_hands: Contributing :couple::two_women_holding_hands:
