@@ -22,27 +22,29 @@ Download the binary from the latest release on [github](https://github.com/DODAS
 ```bash
 wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_linux
 chmod +x sts-wire_linux
-mv sts-wire_linux /usr/local/bin
+mv sts-wire_linux /usr/local/bin/sts-wire
 ```
 ### MacOS
 
 ```bash
 wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_osx
 chmod +x sts-wire_osx
-mv sts-wire_osx /usr/local/bin
+mv sts-wire_osx /usr/local/bin/sts-wire
 ```
 
 ### Windows
 
-Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows)
+Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows)
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
-### :warning: check your version :warning:
+### :warning: Check your version :warning:
 
 If you were using a beta version, previously of the first release 1.0.0, you need to delete the old configuration instance files to correctly use the program, because they are incompatible with the further versions. If the latest instance name was `myinstance` for example, you can delete the folder with the command `rm -r .myinstance`.
 
 > **Note:** the instance folder is hidden and that's because it starts with the dot (`.`) character. On windows, that folder is normally visible.
+
+### :point_down: Further information
 
 - [Go to How to use](#question-How-to-use)
 - [Go to Launch the program](#rocket-Launch-the-program)
