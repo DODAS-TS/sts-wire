@@ -32,9 +32,6 @@ chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin
 ```
 
-- [Go to How to use](#question-How-to-use)
-- [Go to Launch the program](#rocket-Launch-the-program)
-
 ### Windows
 
 Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.0.9/sts-wire_windows)
@@ -46,6 +43,9 @@ Download the binary with the browser: [https://github.com/DODAS-TS/sts-wire/rele
 If you were using a beta version, previously of the first release 1.0.0, you need to delete the old configuration instance files to correctly use the program, because they are incompatible with the further versions. If the latest instance name was `myinstance` for example, you can delete the folder with the command `rm -r .myinstance`.
 
 > **Note:** the instance folder is hidden and that's because it starts with the dot (`.`) character. On windows, that folder is normally visible.
+
+- [Go to How to use](#question-How-to-use)
+- [Go to Launch the program](#rocket-Launch-the-program)
 
 ## :hammer: Building from source
 
