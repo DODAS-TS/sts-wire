@@ -18,6 +18,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	numCheckAttempts = 6
+	checkExeWait     = 2 * time.Second
+	waitFileBusy     = 5 * time.Second
+	closeChannelWait = 2 * time.Second
+)
+
 func CacheDir() (string, error) {
 	cacheDir, errCacheDir := os.UserCacheDir()
 	if errCacheDir != nil {
@@ -137,7 +144,7 @@ func PrepareRclone() error { // nolint: funlen
 			// file busy
 			if strings.Contains(errCreate.Error(), "file busy") {
 				// wait a bit
-				time.Sleep(5 * time.Second)
+				time.Sleep(waitFileBusy)
 				// check exe file
 				return CheckExeFile(rcloneFile, data)
 			}
@@ -172,17 +179,27 @@ func PrepareRclone() error { // nolint: funlen
 
 	log.Debug().Msg("rclone - verify executable")
 
-	errCheck := CheckExeFile(rcloneFile, data)
-	if errCheck != nil {
-		log.Err(errCheck).Msg("Cannot verify rclone executable in cache dir")
+	var errCheck error
 
+	for attempt := 0; attempt < numCheckAttempts; attempt++ {
+		errCheck = CheckExeFile(rcloneFile, data)
+		if errCheck != nil {
+			log.Err(errCheck).Int("attempt", attempt).Msg("Cannot verify rclone executable in cache dir")
+		} else {
+			break
+		}
+
+		time.Sleep(checkExeWait)
+	}
+
+	if errCheck != nil {
 		return fmt.Errorf("prepare rclone %w", errCheck)
 	}
 
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen
+func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -217,21 +234,21 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	if errConfigPath != nil {
 		log.Err(errConfigPath).Msg("server")
 
-		return nil, nil, "", errConfigPath
+		return nil, nil, "", fmt.Errorf("rclone config abs: %w", errConfigPath)
 	}
 
 	logPath, errLogPath := filepath.Abs(path.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
 		log.Err(errLogPath).Msg("server")
 
-		return nil, nil, "", errLogPath
+		return nil, nil, "", fmt.Errorf("rclone log abs: %w", errLogPath)
 	}
 
 	localPathAbs, errLocalPath := filepath.Abs(localPath)
 	if errLocalPath != nil {
 		log.Err(errLocalPath).Msg("server")
 
-		return nil, nil, "", errLocalPath
+		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
 
 	log.Debug().Str("command", strings.Join([]string{
@@ -240,7 +257,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		configPathAbs,
 		"--no-check-certificate",
 		"mount",
-		//"--daemon",
+		// "--daemon",
 		"--log-file",
 		logPath,
 		"--log-level=DEBUG",
@@ -257,7 +274,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		configPathAbs,
 		"--no-check-certificate",
 		"mount",
-		//"--daemon",
+		// "--daemon",
 		"--log-file",
 		logPath,
 		"--log-level=DEBUG",
@@ -281,7 +298,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		procState, errWait := rcloneCmd.Process.Wait()
 
 		// Wait for main server to close channel if User pressed Ctrl+C
-		time.Sleep(2 * time.Second)
+		time.Sleep(closeChannelWait)
 
 		openChannel := true
 		// Check if channel still is open
@@ -360,7 +377,6 @@ func RcloneLogErrors(logPath string) chan string {
 		defer close(outErrors)
 
 		readFile, err := os.Open(logPath)
-
 		if err != nil {
 			log.Err(err).Str("logFile", logFile).Msg("failed to open log file")
 		}
