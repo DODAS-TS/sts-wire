@@ -25,6 +25,8 @@ func tryContainerMachineID() (machineID string, err error) {
 		return machineID, fmt.Errorf("cannot open cgroup: %w", err)
 	}
 
+	defer cgroupFile.Close()
+
 	var buff bytes.Buffer
 
 	_, err = buff.ReadFrom(cgroupFile)
