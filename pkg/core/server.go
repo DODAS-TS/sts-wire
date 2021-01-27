@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -27,6 +28,27 @@ import (
 const (
 	deltaCheckTokenRefresh = time.Duration(5 * time.Second)
 )
+
+func availableRandomPort() (port string, err error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return port, fmt.Errorf("cannot find a valid port: %w", err)
+	}
+
+	defer listener.Close()
+
+	curAddr := listener.Addr().String()
+
+	if strings.Contains(curAddr, "]:") {
+		parts := strings.Split(curAddr, "]:")
+		port = parts[1]
+	} else {
+		parts := strings.Split(curAddr, ":")
+		port = parts[1]
+	}
+
+	return port, nil
+}
 
 // RCloneStruct ..
 type RCloneStruct struct {
@@ -261,13 +283,12 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 
 			sigint <- 1
-
 		})
 
-		address := "localhost:3128"
+		address := fmt.Sprintf("localhost:%d", s.Client.ClientConfig.Port)
 		urlBrowse := fmt.Sprintf("http://%s/", address)
 
-		log.Debug().Str("IAM auth URL", urlBrowse).Msg("Server")
+		log.Debug().Str("IAM auth URL", urlBrowse).Msg("server")
 
 		err := browser.OpenURL(urlBrowse)
 		if err != nil {

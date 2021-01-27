@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"github.com/DODAS-TS/sts-wire/pkg/template"
@@ -207,7 +208,7 @@ var (
 			// }
 
 			iamcURL := "localhost"
-			iamcPort := 3128
+			iamcPort := 0
 
 			if newIamcURL := viper.GetString("IAMAuthURL"); newIamcURL != "" {
 				if valid, err := validator.WebURL(newIamcURL); !valid || err != nil {
@@ -216,8 +217,25 @@ var (
 				iamcURL = newIamcURL
 			}
 
-			if newIamcPort := viper.GetInt("IAMAuthURLPort"); newIamcPort != 0 {
+			if newIamcPort := viper.GetInt("IAMAuthURLPort"); newIamcPort > 0 {
 				iamcPort = newIamcPort
+			} else {
+				// select a random port available from the OS
+				randomPort, errRandPort := availableRandomPort()
+				if errRandPort != nil {
+					log.Err(errRandPort).Msg("server")
+
+					panic(errRandPort)
+				}
+
+				randomPortInt, errConv := strconv.ParseInt(randomPort, 10, 64)
+				if errConv != nil {
+					log.Err(errConv).Msg("server")
+
+					panic(errConv)
+				}
+
+				iamcPort = int(randomPortInt)
 			}
 
 			log.Debug().Str("iamcURL", iamcURL).Msg("command")
