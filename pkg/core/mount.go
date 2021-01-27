@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	numCheckAttempts = 6
-	checkExeWait     = 2 * time.Second
-	waitFileBusy     = 5 * time.Second
+	numCheckAttempts = 10
+	checkExeWait     = 1 * time.Second
+	waitFileBusy     = 1 * time.Second
 	closeChannelWait = 2 * time.Second
 )
 
@@ -97,7 +97,7 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 	return nil
 }
 
-func PrepareRclone() error { // nolint: funlen
+func PrepareRclone() error { // nolint: funlen,gocognit
 	baseDir, errCacheDir := CacheDir()
 	if errCacheDir != nil {
 		return errCacheDir
@@ -143,10 +143,26 @@ func PrepareRclone() error { // nolint: funlen
 
 			// file busy
 			if strings.Contains(errCreate.Error(), "file busy") {
-				// wait a bit
-				time.Sleep(waitFileBusy)
-				// check exe file
-				return CheckExeFile(rcloneFile, data)
+				var errCheck error
+
+				for attempt := 0; attempt < numCheckAttempts; attempt++ {
+					log.Debug().Int("attempt", attempt).Msg("rclone - verify executable")
+
+					errCheck = CheckExeFile(rcloneFile, data)
+					if errCheck != nil {
+						log.Err(errCheck).Int("attempt", attempt).Msg("Cannot verify rclone executable in cache dir when file is busy")
+					} else {
+						break
+					}
+
+					time.Sleep(waitFileBusy)
+				}
+
+				if errCheck != nil {
+					return errCheck
+				}
+
+				return nil
 			}
 
 			log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
@@ -177,11 +193,11 @@ func PrepareRclone() error { // nolint: funlen
 		}
 	}
 
-	log.Debug().Msg("rclone - verify executable")
-
 	var errCheck error
 
 	for attempt := 0; attempt < numCheckAttempts; attempt++ {
+		log.Debug().Int("attempt", attempt).Msg("rclone - verify executable")
+
 		errCheck = CheckExeFile(rcloneFile, data)
 		if errCheck != nil {
 			log.Err(errCheck).Int("attempt", attempt).Msg("Cannot verify rclone executable in cache dir")
