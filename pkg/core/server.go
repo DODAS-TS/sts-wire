@@ -108,17 +108,20 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 		}
 
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			//log.Printf("%s %s", r.Method, r.RequestURI)
+			log.Debug().Str("method", r.Method).Str("URI", r.RequestURI).Msg("IAM Client - /")
 			if r.RequestURI != "/" {
+				log.Debug().Msg("Not a valid IAM Client url")
 				http.NotFound(w, r)
 
 				return
 			}
+
 			http.Redirect(w, r, config.AuthCodeURL(state), http.StatusFound)
 		})
 
 		http.HandleFunc("/oauth2/callback", func(w http.ResponseWriter, r *http.Request) {
-			//log.Printf("%s %s", r.Method, r.RequestURI)
+			log.Debug().Str("method", r.Method).Str("URI", r.RequestURI).Msg("IAM Client - /oauth2/callback")
+
 			if r.URL.Query().Get("state") != state {
 				http.Error(w, "state did not match", http.StatusBadRequest)
 
