@@ -17,4 +17,5 @@ require (
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 // indirect
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5
 	golang.org/x/sys v0.0.0-20201101102859-da207088b7d1
+	gopkg.in/yaml.v2 v2.3.0
 )

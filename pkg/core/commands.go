@@ -100,6 +100,8 @@ var (
 				logFile = "stderr"
 			}
 
+			var firstLogWriter *os.File
+
 			if logFile != "stderr" {
 				if valid, err := validator.LogFile(logFile); !valid {
 					panic(err)
@@ -117,6 +119,7 @@ var (
 					panic(errOpenLog)
 				}
 
+				firstLogWriter = logTarget
 				log.Logger = zerolog.New(logTarget).With().Timestamp().Logger()
 				defer logTarget.Close()
 			} else {
@@ -198,14 +201,25 @@ var (
 
 			log.Debug().Str("confDir", confDir).Msg("command")
 
-			// if instance == "" {
-			// 	instance, err := scanner.GetInputString("Insert a name for the instance: ", "")
-			// 	if err != nil {
-			// 		panic(err)
-			// 	} else if instance == "" {
-			// 		panic(fmt.Errorf("Please insert a valid name."))
-			// 	}
-			// }
+			instanceLogFilename = path.Join(confDir, "instance.log")
+
+			instanceLogFile, errOpenLog := os.OpenFile(instanceLogFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
+			if errOpenLog != nil {
+				panic(errOpenLog)
+			}
+
+			defer instanceLogFile.Close()
+
+			var multi zerolog.LevelWriter
+			if firstLogWriter != nil {
+				multi = zerolog.MultiLevelWriter(firstLogWriter, instanceLogFile)
+			} else {
+				multi = zerolog.MultiLevelWriter(
+					zerolog.ConsoleWriter{Out: os.Stderr}, //nolint: exhaustivestruct
+					instanceLogFile,
+				)
+			}
+			log.Logger = zerolog.New(multi).With().Timestamp().Logger()
 
 			iamcURL := "localhost"
 			iamcPort := 0
@@ -343,19 +357,25 @@ var (
 		Use:   "version",
 		Short: "Print the version number of sts-wire",
 		Run: func(cmd *cobra.Command, args []string) {
-			versionString := strings.Builder{}
-			versionString.WriteString("------------------------------------------------------------------------------\n")
-			versionString.WriteString(fmt.Sprintf(" Version:\t\t%s\n", StsVersion))
-			versionString.WriteString(fmt.Sprintf(" Git Commit:\t\t%s\n", GitCommit))
-			versionString.WriteString(fmt.Sprintf(" Go Version:\t\t%s\n", runtime.Version()))
-			versionString.WriteString(fmt.Sprintf(" Built Time:\t\t%s\n", BuiltTime))
-			versionString.WriteString(fmt.Sprintf(" OS/Arch:\t\t%s\n", OsArch))
-			versionString.WriteString(fmt.Sprintf(" Rclone Version:\t%s\n", RcloneVersion))
-			versionString.WriteString("------------------------------------------------------------------------------")
-			fmt.Println(versionString.String())
+			fmt.Println(buildCmdVersion())
 		},
 	}
 )
+
+func buildCmdVersion() string {
+	versionString := strings.Builder{}
+	versionString.WriteString(divider)
+	versionString.WriteRune('\n')
+	versionString.WriteString(fmt.Sprintf(" Version:\t\t%s\n", StsVersion))
+	versionString.WriteString(fmt.Sprintf(" Git Commit:\t\t%s\n", GitCommit))
+	versionString.WriteString(fmt.Sprintf(" Go Version:\t\t%s\n", runtime.Version()))
+	versionString.WriteString(fmt.Sprintf(" Built Time:\t\t%s\n", BuiltTime))
+	versionString.WriteString(fmt.Sprintf(" OS/Arch:\t\t%s\n", OsArch))
+	versionString.WriteString(fmt.Sprintf(" Rclone Version:\t%s\n", RcloneVersion))
+	versionString.WriteString(divider)
+
+	return versionString.String()
+}
 
 // init of the cobra root command and viper configuration.
 func init() { //nolint: gochecknoinits
