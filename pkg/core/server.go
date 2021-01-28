@@ -130,7 +130,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 			oauth2Token, err := config.Exchange(ctx, r.URL.Query().Get("code"))
 			if err != nil {
-				log.Err(err).Msg("server")
+				log.Err(err).Str("error", "cannot get token with OAuth").Msg("server - OAuth")
 
 				html, errAsset := Asset("html/errorNoToken.html")
 				if errAsset != nil {
@@ -150,7 +150,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 
 			if !oauth2Token.Valid() {
-				log.Err(nil).Bool("tokenValid", oauth2Token.Valid()).Msg("server")
+				log.Err(nil).Bool("tokenValid",
+					oauth2Token.Valid()).Str("error",
+					"token expired").Msg("server - OAuth")
 
 				html, errAsset := Asset("html/errorTokenExpired.html")
 				if errAsset != nil {
@@ -190,7 +192,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			}
 
 			if err != nil {
-				log.Err(fmt.Errorf("Could not save token file: %s", err)).Msg("server")
+				log.Err(fmt.Errorf("could not save token file: %w",
+					err)).Msg("server - OAuth")
 
 				html, errAsset := Asset("html/errorNoSaveToken.html")
 				if errAsset != nil {
@@ -225,7 +228,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 			creds, errSts := sts.Get()
 			if errSts != nil {
-				log.Err(fmt.Errorf("Could not get STS credentials: %s", errSts)).Msg("server")
+				log.Err(fmt.Errorf("could not get STS credentials: %w",
+					errSts)).Msg("server - OAuth")
 
 				html, errAsset := Asset("html/errorNoStsCred.html")
 				if errAsset != nil {
@@ -250,7 +254,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			response["credentials"] = creds
 			_, errMarshall := json.MarshalIndent(response, "", "\t")
 			if errMarshall != nil {
-				log.Err(errMarshall).Msg("server")
+				log.Err(errMarshall).Str("error",
+					"no valid credentials").Msg("server - credentials")
 
 				html, errAsset := Asset("html/errorNoCred.html")
 				if errAsset != nil {
@@ -298,12 +303,12 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			log.Err(err).Msg("Failed to open browser, trying to copy the following on you browser")
 			log.Debug().Msg(config.AuthCodeURL(state))
 			log.Debug().Msg("After that copy the resulting address and run the following command on a separate shell")
-			log.Debug().Msg("curl \"<your resulting address e.g. http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf>\" ")
+			log.Debug().Msg("curl <your resulting address> -> e.g. \"http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf\"")
 
 			color.Red.Println("!!! Failed to open browser, trying to copy the following on you browser")
 			fmt.Printf("==> %s\n", config.AuthCodeURL(state))
 			color.Yellow.Println("=> After that copy the resulting address and run the following command on a separate shell")
-			color.Yellow.Println("-> curl \"<your resulting address e.g. http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf>\"")
+			color.Yellow.Println("-> curl <your resulting address> -> e.g. \"http://localhost:3128/oauth2/callback?code=1tpAd&state=9RpeJxIf\"")
 		}
 
 		srv := &http.Server{Addr: address} // nolint: exhaustivestruct
