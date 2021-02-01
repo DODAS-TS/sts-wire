@@ -12,6 +12,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/rs/zerolog v1.20.0
+	github.com/shirou/gopsutil v3.20.11+incompatible
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620 // indirect

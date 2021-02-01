@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/shirou/gopsutil/host"
 
 	"github.com/spf13/viper"
 	yaml "gopkg.in/yaml.v2"
@@ -37,9 +38,27 @@ func WriteReport(mainErr interface{}) {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	report := strings.Builder{}
+
+	hostStat, _ := host.Info()
+
 	report.WriteString(divider)
 	report.WriteString("\n| Version\n")
 	report.WriteString(buildCmdVersion())
+	report.WriteRune('\n')
+
+	report.WriteString("| System\n")
+	report.WriteString(divider)
+	report.WriteRune('\n')
+	report.WriteString(fmt.Sprintf("Hostname:\t%s\n", hostStat.Hostname))
+	report.WriteString(fmt.Sprintf("OS:\t%s\n", hostStat.OS))
+	report.WriteString(fmt.Sprintf("Platform:\t%s\n", hostStat.Platform))
+	report.WriteString(fmt.Sprintf("PlatformFamily:\t%s\n", hostStat.PlatformFamily))
+	report.WriteString(fmt.Sprintf("PlatformVersion:\t%s\n", hostStat.PlatformVersion))
+	report.WriteString(fmt.Sprintf("KernelVersion:\t%s\n", hostStat.KernelVersion))
+	report.WriteString(fmt.Sprintf("KernelArch:\t%s\n", hostStat.KernelArch))
+	report.WriteString(fmt.Sprintf("VirtualizationSystem:\t%s\n", hostStat.VirtualizationSystem))
+	report.WriteString(fmt.Sprintf("VirtualizationRole:\t%s\n", hostStat.VirtualizationRole))
+	report.WriteString(divider)
 	report.WriteRune('\n')
 
 	c := viper.AllSettings()
