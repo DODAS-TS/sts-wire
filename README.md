@@ -9,7 +9,7 @@
     - CentOS or similar: ` sudo dnf install fuse`
   - MacOS: `brew install --cask osxfuse`
     - or use the binary from the [osxfuse website](https://osxfuse.github.io/)
-      > :bulb: **Note**: `sts-wire` is currently working with [osxfuse 3.11.2](https://github.com/osxfuse/osxfuse/releases/tag/osxfuse-3.11.2)
+    > :bulb: **Note**: `sts-wire` is currently working with [osxfuse 3.11.2](https://github.com/osxfuse/osxfuse/releases/tag/osxfuse-3.11.2)
   - Windows:
     - [Use Linux with WSL](https://ubuntu.com/wsl)
     - Other useful program: [winfsp](https://github.com/billziss-gh/winfsp)
