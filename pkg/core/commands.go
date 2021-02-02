@@ -375,6 +375,9 @@ var (
 				panic(err)
 			}
 
+			// TODO: remove all local instance folders
+			// TODO: remove all logs in cache
+
 			fmt.Println("==> sts-wire env cleaned!")
 		},
 	}
