@@ -5,7 +5,8 @@ GITCOMMIT = $(shell git rev-parse --short HEAD)
 STSVERSION = $(shell git describe --abbrev=0 --tags)
 BUILTTIME = $(shell date -u "+%Y-%m-%d %I:%M:%S%p")
 
-RCLONEVERSION = v1.51.1-patch-s3
+RCLONEVERSION = v1.54.0
+RCLONEURL = https://github.com/DODAS-TS/rclone/releases/download/
 
 UNAME_S = $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -24,40 +25,40 @@ go-bindata-download:
 .PHONY: bind-html
 bind-html: go-bindata-download
 	@echo "==> bindata html"
-	${GOBINDATAEXE} -o pkg/core/assets.go -prefix data/ data/html/
+	${GOBINDATAEXE} -o pkg/core/assets.go -prefix data/ ./data/html/
 	@echo "==> fix package"
 	${SEDCMD} "s/package\ main/package\ core/g" pkg/core/assets.go
 
 .PHONY: bind-rclone
 bind-rclone: go-bindata-download
 	@echo "==> bindata rclone linux"
-	@mkdir -p data/linux
+	@mkdir -p ./data/linux
 	@echo "==> download rclone linux"
-	@wget -L -O data/linux/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone
+	@wget -L -O ./data/linux/rclone ${RCLONEURL}${RCLONEVERSION}/rclone_linux
 	@echo "==> bindata rclone linux executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_linux.go -prefix data/linux/ data/linux/
+	${GOBINDATAEXE} -o pkg/rclone/rclone_linux.go -prefix data/linux/ ./data/linux/
 	@echo "==> fix linux package"
 	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_linux.go
 
 .PHONY: bind-rclone-windows
 bind-rclone-windows: go-bindata-download
 	@echo "==> bindata rclone windows"
-	@mkdir -p data/windows
+	@mkdir -p ./data/windows
 	@echo "==> download rclone windows"
-	@wget -L -O data/windows/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone.exe
+	@wget -L -O ./data/windows/rclone ${RCLONEURL}${RCLONEVERSION}/rclone_windows.exe
 	@echo "==> bindata rclone windows executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_windows.go -prefix data/windows/ data/windows/
+	${GOBINDATAEXE} -o pkg/rclone/rclone_windows.go -prefix data/windows/ ./data/windows/
 	@echo "==> fix windows package"
 	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_windows.go
 
 .PHONY: bind-rclone-macos
 bind-rclone-macos: go-bindata-download
 	@echo "==> bindata rclone macos"
-	@mkdir -p data/darwin
+	@mkdir -p ./data/darwin
 	@echo "==> download rclone macos"
-	@wget -L -O data/darwin/rclone https://github.com/dciangot/rclone/releases/download/${RCLONEVERSION}/rclone_osx
+	@wget -L -O ./data/darwin/rclone ${RCLONEURL}${RCLONEVERSION}/rclone_osx
 	@echo "==> bindata rclone macos executable"
-	${GOBINDATAEXE} -o pkg/rclone/rclone_darwin.go -prefix data/darwin/ data/darwin/
+	${GOBINDATAEXE} -o pkg/rclone/rclone_darwin.go -prefix data/darwin/ ./data/darwin/
 	@echo "==> fix macos package"
 	${SEDCMD} "s/package\ main/package\ rclone/g" pkg/rclone/rclone_darwin.go
 
