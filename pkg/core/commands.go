@@ -360,6 +360,24 @@ var (
 			fmt.Println(buildCmdVersion())
 		},
 	}
+
+	cleanCmd = &cobra.Command{ // nolint:exhaustivestruct,gochecknoglobals
+		Use:   "clean",
+		Short: "Clean sts-wire stuff",
+		Run: func(cmd *cobra.Command, args []string) {
+			rcloneExePath, err := ExePath()
+			if err != nil {
+				panic(err)
+			}
+
+			err = os.Remove(rcloneExePath)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println("==> sts-wire env cleaned!")
+		},
+	}
 )
 
 func buildCmdVersion() string {
@@ -434,6 +452,7 @@ func init() { //nolint: gochecknoinits
 	viper.AddConfigPath(".")
 
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(cleanCmd)
 }
 
 // initConfig of viper.

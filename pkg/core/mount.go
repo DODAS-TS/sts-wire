@@ -91,7 +91,7 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 	if !bytes.Equal(rcloneMd5, originalMd5) {
 		log.Err(nil).Msg("checksum not equal")
 
-		return fmt.Errorf("checksum not equal %w", errRead)
+		return fmt.Errorf("checksum not equal")
 	}
 
 	return nil
