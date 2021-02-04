@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/awnumar/memguard v0.22.2
+	github.com/c-bata/go-prompt v0.2.5
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/gookit/color v1.3.5
