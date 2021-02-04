@@ -134,3 +134,6 @@ mountedVolume/*
 data/*
 !data/html/
 pkg/rclone/*.go
+
+# Local instance folders
+.**/*
