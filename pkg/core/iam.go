@@ -118,6 +118,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 		log.Err(errDo).Msg("IAM connect client")
 
 		if strings.Contains(errDo.Error(), "connection refused") {
+			color.Red.Println("IAM client connection")
 			color.Red.Println(fmt.Sprintf("==> Cannot connect to '%s'", url))
 			color.Red.Println("==> Verify your IAM client")
 
@@ -150,7 +151,7 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errUnmarshall)
 	}
 
-	log.Debug().Str("credential", "acquired").Msg("IAM")
+	log.Debug().Str("credentials", "acquired").Msg("IAM")
 
 	return credentials.Value{ // nolint:exhaustivestruct
 		AccessKeyID:     t.Creds.Result.Credentials.AccessKey,

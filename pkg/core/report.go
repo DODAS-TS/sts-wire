@@ -98,6 +98,9 @@ func WriteReport(mainErr interface{}) {
 	reportFile.WriteString(report.String())
 
 	log.Err(fmt.Errorf("%s", mainErr)).Msg("ERROR")
+	log.Info().Msg(divider)
 	log.Info().Str("report", reportFilename).Msg("Report created")
 	log.Warn().Msg("Please, use the report to have more details...")
+	log.Warn().Msg("You can search for reports using the command \"sts-wire report\"")
+	log.Info().Msg(divider)
 }

@@ -146,6 +146,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 					panic(errWrite)
 				}
 
+				sigint <- -1
+
 				return
 			}
 
@@ -167,6 +169,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 				if errWrite != nil {
 					panic(errWrite)
 				}
+
+				sigint <- -1
 
 				return
 			}
@@ -209,6 +213,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 					panic(errWrite)
 				}
 
+				sigint <- -1
+
 				return
 			}
 
@@ -245,10 +251,12 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 					panic(errWrite)
 				}
 
+				sigint <- -1
+
 				return
 			}
 
-			//fmt.Println(creds)
+			log.Debug().Str("creds", fmt.Sprintf("%+v", creds)).Msg("server")
 
 			response := make(map[string]interface{})
 			response["credentials"] = creds
@@ -271,6 +279,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 					panic(errWrite)
 				}
 
+				sigint <- -1
+
 				return
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
@@ -286,11 +296,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			if errWrite != nil {
 				panic(errWrite)
 			}
-			if errWrite != nil {
-				panic(errWrite)
-			}
 
-			sigint <- 1
+			sigint <- 0
 		})
 
 		address := fmt.Sprintf("localhost:%d", s.Client.ClientConfig.Port)
@@ -313,17 +320,19 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 
 		srv := &http.Server{Addr: address} // nolint: exhaustivestruct
 
-		idleConnsClosed := make(chan struct{})
+		idleConnsClosed := make(chan int)
+		defer close(idleConnsClosed)
+
 		closeConn := func() {
-			<-sigint
+			res := <-sigint // get result
 
 			// We received an interrupt signal, shut down.
 			if err := srv.Shutdown(context.Background()); err != nil {
 				// Error from closing listeners, or context timeout:
-				log.Err(err).Msg("server")
+				log.Err(err).Msg("server - shutdown")
 			}
 
-			close(idleConnsClosed)
+			idleConnsClosed <- res // propagate result after server is closed
 		}
 
 		go closeConn()
@@ -335,7 +344,10 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			log.Err(err).Msg("server")
 		}
 
-		<-idleConnsClosed
+		res := <-idleConnsClosed
+		if res != 0 {
+			panic("error during IAM OAuth - server shutdown")
+		}
 	} else {
 		accessToken := os.Getenv("ACCESS_TOKEN")
 

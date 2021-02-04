@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -222,9 +224,7 @@ var (
 			}
 
 			instanceRef.Close()
-			log.Debug().Str("confDir", confDir).Msg("Instance folder")
-
-			os.Exit(0)
+			log.Debug().Str("confDir", confDir).Msg("command")
 
 			var multi zerolog.LevelWriter
 			if firstLogWriter != nil {
@@ -409,7 +409,46 @@ var (
 			fmt.Println("==> sts-wire env cleaned!")
 		},
 	}
+
+	reportCmd = &cobra.Command{ // nolint:exhaustivestruct,gochecknoglobals
+		Use:   "report",
+		Short: "search and open sts-wire reports",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("==> Please select a report:")
+			report := prompt.Input("> ", reportCompleter)
+
+			reportFile, err := os.Open(report)
+			if err != nil {
+				panic(err)
+			}
+
+			defer reportFile.Close()
+
+			var buffer bytes.Buffer
+
+			_, err = buffer.ReadFrom(reportFile)
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Println(divider)
+			fmt.Print(buffer.String())
+		},
+	}
 )
+
+func reportCompleter(d prompt.Document) []prompt.Suggest {
+	suggestions := []prompt.Suggest{}
+
+	matches, _ := filepath.Glob("./.**/report_*.out")
+	for _, match := range matches {
+		suggestions = append(suggestions, prompt.Suggest{
+			Text: path.Base(match), Description: fmt.Sprintf("folder -> %s", path.Dir(match)),
+		})
+	}
+
+	return prompt.FilterHasPrefix(suggestions, d.GetWordBeforeCursor(), true)
+}
 
 func buildCmdVersion() string {
 	versionString := strings.Builder{}
@@ -488,6 +527,7 @@ func init() { //nolint: gochecknoinits
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(cleanCmd)
+	rootCmd.AddCommand(reportCmd)
 }
 
 // initConfig of viper.

@@ -28,7 +28,7 @@ type InitClientConfig struct {
 func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,gocognit,lll
 	filename := t.ConfDir + "/" + instance + ".json"
 
-	log.Debug().Str("filename", filename).Msg("InitClient - read conf file")
+	log.Debug().Str("filename", filename).Msg("credentials - init client")
 
 	confFile, err := os.Open(filename)
 
@@ -145,7 +145,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		_, err = rbody.ReadFrom(confFile)
 		if err != nil {
-			log.Err(err).Msg("InitClient - read conf file")
+			log.Err(err).Msg("credentials - init client")
 			panic(err)
 		}
 
@@ -169,7 +169,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		log.Debug().Str("response endpoint", clientResponse.Endpoint).Msg("credentials")
 		endpoint = strings.Split(clientResponse.Endpoint, "/register")[0]
 	default:
-		log.Err(err).Msg("InitClient - read conf file")
+		log.Err(err).Msg("credentials - init client")
 		panic(err)
 	}
 
