@@ -381,18 +381,29 @@ var (
 		Use:   "clean",
 		Short: "Clean sts-wire stuff",
 		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("=> Get rclone path\n")
 			rcloneExePath, err := ExePath()
 			if err != nil {
 				panic(err)
 			}
 
+			fmt.Printf("==> Remove rclone: %s\n", rcloneExePath)
 			err = os.Remove(rcloneExePath)
-			if err != nil {
+			if err != nil && !os.IsNotExist(err) {
 				panic(err)
 			}
 
-			// TODO: remove all local instance folders
-			// TODO: remove all logs in cache
+			matches, _ := filepath.Glob("./.**/instance.info")
+			for _, match := range matches {
+				fmt.Printf("=> Remove instance folder: %s\n", match)
+				os.RemoveAll(match)
+			}
+
+			logFiles, _ := filepath.Glob(path.Join(getBaseLogDir(), "log", "*.log"))
+			for _, curLog := range logFiles {
+				fmt.Printf("=> Remove log: %s\n", curLog)
+				os.RemoveAll(curLog)
+			}
 
 			fmt.Println("==> sts-wire env cleaned!")
 		},
@@ -414,10 +425,7 @@ func buildCmdVersion() string {
 	return versionString.String()
 }
 
-// init of the cobra root command and viper configuration.
-func init() { //nolint: gochecknoinits
-	cobra.OnInitialize(initConfig)
-
+func getBaseLogDir() (baseLogDir string) {
 	baseLogDir, errConfDir := os.UserConfigDir()
 	if errConfDir != nil {
 		curDir, errAbsCurDir := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -428,7 +436,14 @@ func init() { //nolint: gochecknoinits
 		baseLogDir = curDir
 	}
 
-	defaultLogFile = path.Join(baseLogDir, "log", "sts-wire.log")
+	return baseLogDir
+}
+
+// init of the cobra root command and viper configuration.
+func init() { //nolint: gochecknoinits
+	cobra.OnInitialize(initConfig)
+
+	defaultLogFile = path.Join(getBaseLogDir(), "log", "sts-wire.log")
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile,
