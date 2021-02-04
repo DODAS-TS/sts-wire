@@ -395,8 +395,9 @@ var (
 
 			matches, _ := filepath.Glob("./.**/instance.info")
 			for _, match := range matches {
-				fmt.Printf("=> Remove instance folder: %s\n", match)
-				os.RemoveAll(match)
+				curDir := path.Dir(match)
+				fmt.Printf("=> Remove instance folder: %s\n", curDir)
+				os.RemoveAll(curDir)
 			}
 
 			logFiles, _ := filepath.Glob(path.Join(getBaseLogDir(), "log", "*.log"))
