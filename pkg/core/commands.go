@@ -197,6 +197,7 @@ var (
 					log.Err(errMkdir).Msg("command cannot create instance folder")
 					panic(errMkdir)
 				}
+
 			}
 
 			log.Debug().Str("confDir", confDir).Msg("command")
@@ -209,6 +210,21 @@ var (
 			}
 
 			defer instanceLogFile.Close()
+
+			instanceRef, errInstanceFile := os.OpenFile(path.Join(confDir, "instance.info"), os.O_WRONLY|os.O_CREATE, fileMode)
+			if errInstanceFile != nil {
+				panic(errInstanceFile)
+			}
+
+			_, errWriteInstance := instanceRef.WriteString(fmt.Sprintf("---\nname: %s\nlog: ./instance.log\n", instance))
+			if errWriteInstance != nil {
+				panic(errWriteInstance)
+			}
+
+			instanceRef.Close()
+			log.Debug().Str("confDir", confDir).Msg("Instance folder")
+
+			os.Exit(0)
 
 			var multi zerolog.LevelWriter
 			if firstLogWriter != nil {
