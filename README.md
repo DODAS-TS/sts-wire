@@ -80,8 +80,10 @@ Usage:
   sts-wire [command]
 
 Available Commands:
+  clean       Clean sts-wire stuff
   help        Help about any command
-  version     Print the version number of Hugo
+  report      search and open sts-wire reports
+  version     Print the version number of sts-wire
 
 Flags:
       --config string           config file (default "./config.json")
