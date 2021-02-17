@@ -113,14 +113,8 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 	log.Debug().Str("rcloneFile", rcloneFile).Msg("rclone")
 	log.Debug().Msg("rclone - get asset data")
 
-	data, errAsset := rclone.Asset("rclone")
+	data := rclone.Executable
 	log.Debug().Int("assetLen", len(data)).Msg("rclone")
-
-	if errAsset != nil {
-		log.Err(errAsset).Msg("Rclone asset for Darwin not found")
-
-		return fmt.Errorf("prepare rclone %w", errAsset)
-	}
 
 	log.Debug().Msg("rclone - create executable base directories")
 

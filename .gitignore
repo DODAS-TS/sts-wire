@@ -131,9 +131,7 @@ mountedVolume/*
 *.yml
 
 # Assets
-data/*
-!data/html/
-pkg/rclone/*.go
+pkg/rclone/data/*
 
 # Local instance folders
 .**/*

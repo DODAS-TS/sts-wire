@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -132,16 +133,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 			if err != nil {
 				log.Err(err).Str("error", "cannot get token with OAuth").Msg("server - OAuth")
 
-				html, errAsset := Asset("html/errorNoToken.html")
-				if errAsset != nil {
-					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-
-					return
-				}
-
-				w.WriteHeader(http.StatusBadRequest)
-
-				_, errWrite := w.Write(html)
+				_, errWrite := w.Write(htmlErrorNoToken)
 				if errWrite != nil {
 					panic(errWrite)
 				}
@@ -156,16 +148,8 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 					oauth2Token.Valid()).Str("error",
 					"token expired").Msg("server - OAuth")
 
-				html, errAsset := Asset("html/errorTokenExpired.html")
-				if errAsset != nil {
-					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-
-					return
-				}
-
 				w.WriteHeader(http.StatusBadRequest)
-
-				_, errWrite := w.Write(html)
+				_, errWrite := w.Write(htmlErrorTokenExpired)
 				if errWrite != nil {
 					panic(errWrite)
 				}
@@ -199,20 +183,12 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 				log.Err(fmt.Errorf("could not save token file: %w",
 					err)).Msg("server - OAuth")
 
-				html, errAsset := Asset("html/errorNoSaveToken.html")
-				if errAsset != nil {
-					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-
-					return
-				}
-
 				w.WriteHeader(http.StatusBadRequest)
 
-				_, errWrite := w.Write(html)
+				_, errWrite := w.Write(htmlErrorNoSaveToken)
 				if errWrite != nil {
 					panic(errWrite)
 				}
-
 				sigint <- -1
 
 				return
@@ -237,16 +213,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 				log.Err(fmt.Errorf("could not get STS credentials: %w",
 					errSts)).Msg("server - OAuth")
 
-				html, errAsset := Asset("html/errorNoStsCred.html")
-				if errAsset != nil {
-					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-
-					return
-				}
-
 				w.WriteHeader(http.StatusBadRequest)
 
-				_, errWrite := w.Write(html)
+				_, errWrite := w.Write(htmlErrorNoStsCred)
 				if errWrite != nil {
 					panic(errWrite)
 				}
@@ -265,16 +234,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 				log.Err(errMarshall).Str("error",
 					"no valid credentials").Msg("server - credentials")
 
-				html, errAsset := Asset("html/errorNoCred.html")
-				if errAsset != nil {
-					http.Error(w, errAsset.Error(), http.StatusInternalServerError)
-
-					return
-				}
-
 				w.WriteHeader(http.StatusInternalServerError)
 
-				_, errWrite := w.Write(html)
+				_, errWrite := w.Write(htmlErrorNoCred)
 				if errWrite != nil {
 					panic(errWrite)
 				}
@@ -284,15 +246,9 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 				return
 			}
 			//msg := fmt.Sprintf("CREDENTIALS %s", creds)
-			//w.Write([]byte(msg))
-			html, errAsset := Asset("html/mountingPage.html")
-			if errAsset != nil {
-				http.Error(w, errAsset.Error(), http.StatusInternalServerError)
+			//w.Write([]byte(m	sg))
 
-				return
-			}
-
-			_, errWrite := w.Write(html)
+			_, errWrite := w.Write(htmlMountingPage)
 			if errWrite != nil {
 				panic(errWrite)
 			}
