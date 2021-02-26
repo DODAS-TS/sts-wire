@@ -44,11 +44,6 @@ func LogFile(logFilePath string) (bool, error) {
 		return false, ErrNoValidLogFile
 	}
 
-	_, errAbs := filepath.Abs(logFilePath)
-	if errAbs != nil {
-		return false, fmt.Errorf("no valid path: %w", errAbs)
-	}
-
 	return true, nil
 }
 
