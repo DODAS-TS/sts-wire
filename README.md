@@ -34,7 +34,7 @@ mv sts-wire_osx /usr/local/bin/sts-wire
 
 ### Windows
 
-Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.1.0/sts-wire_windows](https://github.com/DODAS-TS/sts-wire/releases/download/v1.1.0/sts-wire_windows)
+Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.1.0/sts-wire_windows.exe](https://github.com/DODAS-TS/sts-wire/releases/download/v1.1.0/sts-wire_windows.exe)
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
