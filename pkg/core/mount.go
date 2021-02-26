@@ -41,7 +41,7 @@ func ExePath() (string, error) {
 		return "", errCacheDir
 	}
 
-	return filepath.Join(cacheDir, "rclone"), nil
+	return filepath.Join(cacheDir, rcloneExeString), nil
 }
 
 func CheckExeFile(rcloneFile string, originalData []byte) error {
