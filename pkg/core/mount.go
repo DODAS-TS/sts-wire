@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -33,7 +32,7 @@ func CacheDir() (string, error) {
 		return "", fmt.Errorf("CacheDir %w", errCacheDir)
 	}
 
-	return path.Join(cacheDir, "sts-wire"), nil
+	return filepath.Join(cacheDir, "sts-wire"), nil
 }
 
 func ExePath() (string, error) {
@@ -42,7 +41,7 @@ func ExePath() (string, error) {
 		return "", errCacheDir
 	}
 
-	return path.Join(cacheDir, "rclone"), nil
+	return filepath.Join(cacheDir, "rclone"), nil
 }
 
 func CheckExeFile(rcloneFile string, originalData []byte) error {
@@ -240,14 +239,14 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 
 	log.Debug().Str("action", "prepare mounting points").Msg("rclone - mount")
 
-	configPathAbs, errConfigPath := filepath.Abs(path.Join(configPath, "/rclone.conf"))
+	configPathAbs, errConfigPath := filepath.Abs(filepath.Join(configPath, "/rclone.conf"))
 	if errConfigPath != nil {
 		log.Err(errConfigPath).Msg("server")
 
 		return nil, nil, "", fmt.Errorf("rclone config abs: %w", errConfigPath)
 	}
 
-	logPath, errLogPath := filepath.Abs(path.Join(configPath, "/rclone.log"))
+	logPath, errLogPath := filepath.Abs(filepath.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
 		log.Err(errLogPath).Msg("server")
 
