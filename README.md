@@ -11,7 +11,9 @@
     - or use the binary from the [osxfuse website](https://osxfuse.github.io/)
   - Windows:
     - [Use Linux with WSL](https://ubuntu.com/wsl)
-    - Other useful program: [winfsp](https://github.com/billziss-gh/winfsp)
+    - Other needed program: **winfsp**
+      -  [repo](https://github.com/billziss-gh/winfsp)
+      -  [webpage](http://www.secfs.net/winfsp/rel/)
   - Further information on fuse dependency with rclone: [rclone mount](https://rclone.org/commands/rclone_mount/)
 
 ## :fast_forward: Quick start
