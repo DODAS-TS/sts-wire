@@ -14,9 +14,9 @@ const (
 
 var (
 	ErrNoValidFile                  = errors.New("no valid file")
-	validFile                       = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
+	validFile                       = regexp.MustCompile(`^([a-zA-Z_\:\\\-\s0-9\.\/]+)+$`)
 	ErrNoValidLogFile               = errors.New("no valid log file")
-	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(\.log)$`)
+	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\:\\\-\s0-9\.\/]+)+(\.log)$`)
 	ErrNoValidPath                  = errors.New("no valid path")
 	validPath                       = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
 	ErrNoValidEndpoint              = errors.New("no valid s3 endpoint")
