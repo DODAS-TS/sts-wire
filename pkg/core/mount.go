@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -227,11 +228,13 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 
 	log.Debug().Str("action", "make local dir").Msg("rclone - mount")
 
-	_, errLocalPath := os.Stat(localPath)
-	if os.IsNotExist(errLocalPath) {
-		errMkdir := os.MkdirAll(localPath, os.ModePerm)
-		if errMkdir != nil {
-			panic(errMkdir)
+	if runtime.GOOS != "windows" {
+		_, errLocalPath := os.Stat(localPath)
+		if os.IsNotExist(errLocalPath) {
+			errMkdir := os.MkdirAll(localPath, os.ModePerm)
+			if errMkdir != nil {
+				panic(errMkdir)
+			}
 		}
 	}
 
