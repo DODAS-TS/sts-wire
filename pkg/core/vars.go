@@ -9,7 +9,7 @@ const (
 )
 
 var (
-	instanceLogFilename = ".instance.log"
+	instanceLogFilename = "sts-wire.log"
 	GitCommit           string //nolint:gochecknoglobals
 	StsVersion          string //nolint:gochecknoglobals
 	BuiltTime           string //nolint:gochecknoglobals
