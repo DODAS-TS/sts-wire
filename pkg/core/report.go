@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -86,7 +87,7 @@ func WriteReport(mainErr interface{}) {
 	report.WriteRune('\n')
 	report.WriteString(fmt.Sprintf("%s\n", mainErr))
 
-	reportFilename := path.Join(path.Dir(instanceLogFilename), fmt.Sprintf("report_%d.out", time.Now().Unix()))
+	reportFilename := filepath.Join(path.Dir(instanceLogFilename), fmt.Sprintf("report_%d.out", time.Now().Unix()))
 
 	reportFile, errCreateReport := os.OpenFile(reportFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_SYNC, fileMode)
 	if errCreateReport != nil {

@@ -204,7 +204,7 @@ var (
 
 			log.Debug().Str("confDir", confDir).Msg("command")
 
-			instanceLogFilename = path.Join(confDir, "instance.log")
+			instanceLogFilename = filepath.Join(confDir, "instance.log")
 
 			instanceLogFile, errOpenLog := os.OpenFile(instanceLogFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
 			if errOpenLog != nil {
@@ -483,7 +483,7 @@ func getBaseLogDir() (baseLogDir string) {
 func init() { //nolint: gochecknoinits
 	cobra.OnInitialize(initConfig)
 
-	defaultLogFile = path.Join(getBaseLogDir(), "log", "sts-wire.log")
+	defaultLogFile = filepath.Join(getBaseLogDir(), "log", "sts-wire.log")
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile,
