@@ -16,7 +16,7 @@ var (
 	ErrNoValidFile                  = errors.New("no valid file")
 	validFile                       = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
 	ErrNoValidLogFile               = errors.New("no valid log file")
-	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(.log)$`)
+	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+(\.log)$`)
 	ErrNoValidPath                  = errors.New("no valid path")
 	validPath                       = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
 	ErrNoValidEndpoint              = errors.New("no valid s3 endpoint")
@@ -40,15 +40,11 @@ func RefreshTokenRenew(minutes int) (bool, error) {
 
 // LogFile checks if the path indicated for the log file is valid.
 func LogFile(logFilePath string) (bool, error) {
-	if !validFile.MatchString(logFilePath) {
-		return false, ErrNoValidFile
-	}
-
 	if !validLogFile.MatchString(logFilePath) {
 		return false, ErrNoValidLogFile
 	}
 
-	_, errAbs := filepath.Abs(filepath.Clean(logFilePath))
+	_, errAbs := filepath.Abs(logFilePath)
 	if errAbs != nil {
 		return false, fmt.Errorf("no valid path: %w", errAbs)
 	}
