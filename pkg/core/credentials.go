@@ -25,7 +25,7 @@ type InitClientConfig struct {
 	NoPWD          bool
 }
 
-func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,gocognit,lll
+func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,cyclop,gocognit,lll
 	filename := t.ConfDir + "/" + instance + ".json"
 
 	log.Debug().Str("filename", filename).Msg("credentials - init client")

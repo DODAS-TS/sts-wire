@@ -170,6 +170,7 @@ var (
 			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
 			log.Debug().Str("remote", remote).Msg("command")
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
+			log.Debug().Bool("noPassword", noPWD).Msg("command")
 
 			if cfgFile != "" {
 				if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
@@ -224,7 +225,6 @@ var (
 			}
 
 			instanceRef.Close()
-			log.Debug().Str("confDir", confDir).Msg("command")
 
 			var multi zerolog.LevelWriter
 			if firstLogWriter != nil {
