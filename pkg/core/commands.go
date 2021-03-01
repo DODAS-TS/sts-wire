@@ -409,7 +409,7 @@ var (
 				os.RemoveAll(curDir)
 			}
 
-			logFiles, _ := filepath.Glob(path.Join(getBaseLogDir(), "log", "*.log"))
+			logFiles, _ := filepath.Glob(filepath.Join(getBaseLogDir(), "log", "*.log"))
 			for _, curLog := range logFiles {
 				fmt.Printf("=> Remove log: %s\n", curLog)
 				os.RemoveAll(curLog)
