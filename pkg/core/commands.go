@@ -401,9 +401,11 @@ var (
 			pattern.WriteRune(os.PathSeparator)
 			pattern.WriteString("instance.info")
 
+			fmt.Println(pattern.String())
+
 			matches, _ := filepath.Glob(pattern.String())
 			for _, match := range matches {
-				curDir := path.Dir(match)
+				curDir := filepath.Dir(match)
 
 				fmt.Printf("=> Remove instance folder: %s\n", curDir)
 				os.RemoveAll(curDir)
