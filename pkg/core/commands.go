@@ -443,7 +443,7 @@ func reportCompleter(d prompt.Document) []prompt.Suggest {
 	matches, _ := filepath.Glob("./.**/report_*.out")
 	for _, match := range matches {
 		suggestions = append(suggestions, prompt.Suggest{
-			Text: path.Base(match), Description: fmt.Sprintf("folder -> %s", path.Dir(match)),
+			Text: match, Description: fmt.Sprintf("folder -> %s", path.Dir(match)),
 		})
 	}
 
