@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/DODAS-TS/sts-wire/pkg/core"
 	_ "github.com/DODAS-TS/sts-wire/pkg/core"
@@ -11,8 +13,10 @@ import (
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
-			core.WriteReport(err)
-			panic(err)
+			if !strings.Contains(fmt.Sprintf("%v", err), "unknown flag") {
+				core.WriteReport(err)
+				panic(err)
+			}
 		}
 	}()
 
