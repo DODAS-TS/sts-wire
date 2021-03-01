@@ -401,8 +401,6 @@ var (
 			pattern.WriteRune(os.PathSeparator)
 			pattern.WriteString("instance.info")
 
-			fmt.Println(pattern.String())
-
 			matches, _ := filepath.Glob(pattern.String())
 			for _, match := range matches {
 				curDir := filepath.Dir(match)
