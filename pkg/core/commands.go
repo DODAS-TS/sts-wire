@@ -393,9 +393,18 @@ var (
 				panic(err)
 			}
 
-			matches, _ := filepath.Glob("./.**/instance.info")
+			pattern := strings.Builder{}
+
+			pattern.WriteString(".")
+			pattern.WriteRune(os.PathSeparator)
+			pattern.WriteString(".**")
+			pattern.WriteRune(os.PathSeparator)
+			pattern.WriteString("instance.info")
+
+			matches, _ := filepath.Glob(pattern.String())
 			for _, match := range matches {
 				curDir := path.Dir(match)
+
 				fmt.Printf("=> Remove instance folder: %s\n", curDir)
 				os.RemoveAll(curDir)
 			}
