@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -20,7 +19,11 @@ import (
 func instanceLog() string {
 	instanceLogFile, errOpenLog := os.OpenFile(instanceLogFilename, os.O_RDONLY, fileMode)
 	if errOpenLog != nil {
-		panic(errOpenLog)
+		if !strings.Contains(errOpenLog.Error(), "no such file or directory") {
+			panic(errOpenLog)
+		} else {
+			return ""
+		}
 	}
 
 	defer instanceLogFile.Close()
@@ -87,7 +90,18 @@ func WriteReport(mainErr interface{}) {
 	report.WriteRune('\n')
 	report.WriteString(fmt.Sprintf("%s\n", mainErr))
 
-	reportFilename := filepath.Join(path.Dir(instanceLogFilename), fmt.Sprintf("report_%d.out", time.Now().Unix()))
+	baseDir := filepath.Clean(filepath.Dir(instanceLogFilename))
+
+	if baseDir == "." {
+		baseDir = filepath.Join(".", ".generic")
+
+		errMkdirs := os.MkdirAll(baseDir, os.ModePerm)
+		if errMkdirs != nil {
+			panic(errMkdirs)
+		}
+	}
+
+	reportFilename := filepath.Join(baseDir, fmt.Sprintf("report_%d.out", time.Now().Unix()))
 
 	reportFile, errCreateReport := os.OpenFile(reportFilename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|os.O_SYNC, fileMode)
 	if errCreateReport != nil {
