@@ -57,6 +57,17 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 
 	defer rcloneFileReader.Close()
 
+	// Check if it is an executable
+	rcloneInfo, err := rcloneFileReader.Stat()
+	if err != nil {
+		return fmt.Errorf("cannot have rclone file stat")
+	}
+
+	if rcloneInfo.Mode() != os.FileMode(exeFileMode) {
+		return fmt.Errorf("rclone is not an executable")
+	}
+
+	// Verify checksum
 	_, errRead := rcloneExeFile.ReadFrom(rcloneFileReader)
 	if errRead != nil {
 		log.Err(errRead).Msg("Cannot read rclone executable in cache dir")
