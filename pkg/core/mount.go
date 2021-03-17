@@ -146,7 +146,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 
 		rcloneExeFile, errCreate := os.OpenFile(rcloneFile, os.O_RDWR|os.O_CREATE|os.O_SYNC, fileMode)
 		if errCreate != nil {
-			log.Err(errCreate).Msg("Cannot open with write permission the rclone executable in cache dir")
+			log.Err(errCreate).Msg("rclone - creating executable - Cannot open with write permission the rclone executable in cache dir")
 
 			// file busy
 			if strings.Contains(errCreate.Error(), "file busy") {
@@ -157,7 +157,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 
 					errCheck = CheckExeFile(rcloneFile, data)
 					if errCheck != nil {
-						log.Err(errCheck).Int("attempt", attempt).Msg("Cannot verify rclone executable in cache dir when file is busy")
+						log.Err(errCheck).Int("attempt", attempt).Msg("rclone - verify executable - Cannot verify rclone executable in cache dir when file is busy")
 					} else {
 						break
 					}
@@ -172,7 +172,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 				return nil
 			}
 
-			log.Err(errCreate).Msg("Cannot create rclone executable in cache dir")
+			log.Err(errCreate).Msg("rclone - creating executable - Cannot create rclone executable in cache dir")
 
 			return fmt.Errorf("prepare rclone %w", errCreate)
 		}
@@ -183,7 +183,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 		log.Debug().Int64("writtenData", writtenData).Msg("rclone")
 
 		if errWrite != nil {
-			log.Err(errWrite).Msg("Cannot write rclone executable in cache dir")
+			log.Err(errWrite).Msg("rclone - creating executable - Cannot write rclone executable in cache dir")
 
 			return fmt.Errorf("prepare rclone %w", errWrite)
 		}
@@ -194,7 +194,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 
 		errChmod := os.Chmod(rcloneFile, os.FileMode(exeFileMode))
 		if errChmod != nil {
-			log.Err(errChmod).Msg("Cannot make rclone an executable in cache dir")
+			log.Err(errChmod).Msg("rclone - creating executable - Cannot make rclone an executable in cache dir")
 
 			return fmt.Errorf("prepare rclone %w", errChmod)
 		}
