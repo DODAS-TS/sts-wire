@@ -99,7 +99,7 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 	originalMd5 := rcloneExe.Sum(nil)
 	log.Debug().Str("rcloneMd5",
 		hex.EncodeToString(rcloneMd5)).Str("originalMd5",
-		hex.EncodeToString(originalMd5)).Msg("rclone - executble checksum")
+		hex.EncodeToString(originalMd5)).Msg("rclone - executable checksum")
 
 	if !bytes.Equal(rcloneMd5, originalMd5) {
 		log.Err(nil).Msg("checksum not equal")
