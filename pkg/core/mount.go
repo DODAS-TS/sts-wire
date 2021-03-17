@@ -401,6 +401,8 @@ func RcloneLogErrors(logPath string) chan string {
 	go func() {
 		defer close(outErrors)
 
+		latestErrors := make([]string, 0)
+
 		readFile, err := os.Open(logPath)
 		if err != nil {
 			log.Err(err).Str("logFile", logFile).Msg("failed to open log file")
@@ -413,9 +415,17 @@ func RcloneLogErrors(logPath string) chan string {
 
 		for fileScanner.Scan() {
 			curLine := fileScanner.Text()
-			if strings.Contains(curLine, "error") {
-				outErrors <- fileScanner.Text()
+
+			switch {
+			case strings.Contains(curLine, "INFO") && strings.Contains(curLine, "Exiting..."):
+				latestErrors = make([]string, 0)
+			case strings.Contains(curLine, "error"), strings.Contains(curLine, "ERROR"):
+				latestErrors = append(latestErrors, curLine)
 			}
+		}
+
+		for _, foundErr := range latestErrors {
+			outErrors <- foundErr
 		}
 	}()
 

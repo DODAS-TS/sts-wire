@@ -27,8 +27,11 @@ import (
 )
 
 const (
-	deltaCheckTokenRefresh = time.Duration(5 * time.Second)
+	deltaCheckTokenRefresh  = time.Duration(5 * time.Second)
+	checkRuntimeRcloneSleep = 10 * time.Second
 )
+
+var errRcloneRuntime = errors.New("rclone runtime error")
 
 func availableRandomPort() (port string, err error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -444,7 +447,7 @@ func (s *Server) Start() (ClientResponse, IAMCreds, string, error) { //nolint: f
 	return clientResponse, credsIAM, endpoint, nil
 }
 
-func (s *Server) RefreshToken(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) {
+func (s *Server) RefreshToken(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) { //nolint:funlen
 	v := url.Values{}
 
 	//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
@@ -518,9 +521,37 @@ func (s *Server) RefreshToken(clientResponse ClientResponse, credsIAM IAMCreds, 
 	}
 }
 
-func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) { //nolint:funlen
+func (s *Server) UpdateTokenLoop(clientResponse ClientResponse, credsIAM IAMCreds, endpoint string) { //nolint:funlen,cyclop,lll
 	loop := true
 	signalChan := make(chan os.Signal, 1)
+
+	checkRuntimeRcloneErrors := func() {
+		for loop {
+			log.Debug().Msg("checkRuntimeRcloneErrors")
+
+			foundErrors := false
+
+			for errorString := range RcloneLogErrors(s.rcloneLogPath) {
+				log.Debug().Str("log string", errorString).Msg("rclone runtime error")
+
+				foundErrors = true
+			}
+
+			if foundErrors {
+				log.Debug().Msg("rclone runtime error - interrupt rclone process")
+
+				errCmdInterrupt := s.rcloneCmd.Process.Signal(os.Interrupt)
+				if errCmdInterrupt != nil && !strings.Contains(errCmdInterrupt.Error(), "process already finished") {
+					panic(errCmdInterrupt)
+				}
+			}
+
+			time.Sleep(checkRuntimeRcloneSleep)
+		}
+
+		log.Debug().Msg("checkRuntimeRcloneErrors - exit")
+	}
+	go checkRuntimeRcloneErrors()
 
 	signal.Ignore(os.Interrupt)
 	signal.Notify(signalChan, os.Interrupt)
