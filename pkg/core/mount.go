@@ -395,13 +395,18 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	return rcloneCmd, cmdErr, logPath, nil
 }
 
-func RcloneLogErrors(logPath string) chan string {
-	outErrors := make(chan string)
+type RcloneLogErrorMsg struct {
+	Str        string
+	LineNumber int
+}
+
+func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg {
+	outErrors := make(chan RcloneLogErrorMsg)
 
 	go func() {
 		defer close(outErrors)
 
-		latestErrors := make([]string, 0)
+		latestErrors := make([]RcloneLogErrorMsg, 0)
 
 		readFile, err := os.Open(logPath)
 		if err != nil {
@@ -413,15 +418,23 @@ func RcloneLogErrors(logPath string) chan string {
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
 
+		lineNum := 0
 		for fileScanner.Scan() {
-			curLine := fileScanner.Text()
+			if lineNum >= fromLine {
+				curLine := fileScanner.Text()
 
-			switch {
-			case strings.Contains(curLine, "INFO") && strings.Contains(curLine, "Exiting..."):
-				latestErrors = make([]string, 0)
-			case strings.Contains(curLine, "error"), strings.Contains(curLine, "ERROR"):
-				latestErrors = append(latestErrors, curLine)
+				switch {
+				case strings.Contains(curLine, "INFO") && strings.Contains(curLine, "Exiting..."):
+					latestErrors = make([]RcloneLogErrorMsg, 0)
+				case strings.Contains(curLine, "error"), strings.Contains(curLine, "ERROR"):
+					latestErrors = append(latestErrors, RcloneLogErrorMsg{
+						Str:        curLine,
+						LineNumber: lineNum,
+					})
+				}
 			}
+
+			lineNum++
 		}
 
 		for _, foundErr := range latestErrors {

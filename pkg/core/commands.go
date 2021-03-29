@@ -61,6 +61,7 @@ var (
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
 	debug             bool   //nolint:gochecknoglobals
+	tryRemount        bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
 
 	// rootCmd the sts-wire command.
@@ -347,23 +348,24 @@ var (
 				RemotePath:        remote,
 				LocalPath:         localMountPath,
 				Endpoint:          endpoint,
-				Response:          clientResponse,
+				CurClientResponse: clientResponse,
 				RefreshTokenRenew: refreshTokenRenew,
+				TryRemount:        tryRemount,
 			}
 
-			clientResponse, credsIAM, endpoint, errStart := server.Start()
+			credsIAM, endpoint, errStart := server.Start()
 			if errStart != nil {
 				panic(errStart)
 			}
 
 			if refreshToken := os.Getenv("REFRESH_TOKEN"); refreshToken != "" {
 				log.Debug().Str("refreshToken", refreshToken).Msg("Force refresh token call")
-				server.RefreshToken(clientResponse, credsIAM, endpoint)
+				server.RefreshToken(credsIAM, endpoint)
 			}
 
 			color.Green.Printf("==> Server started successfully and volume mounted at %s\n", localMountPath)
 
-			server.UpdateTokenLoop(clientResponse, credsIAM, endpoint)
+			server.UpdateTokenLoop(credsIAM, endpoint)
 
 			return nil
 		},
@@ -502,6 +504,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
 		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
+	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", false, "try to remount if there are any rclone errors (up to 10 times)")
 
 	errFlag := viper.BindPFlag("insecureConn", rootCmd.PersistentFlags().Lookup("insecureConn"))
 	if errFlag != nil {
@@ -519,6 +522,11 @@ func init() { //nolint: gochecknoinits
 	}
 
 	errFlag = viper.BindPFlag("noPassword", rootCmd.PersistentFlags().Lookup("noPassword"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("tryRemount", rootCmd.PersistentFlags().Lookup("tryRemount"))
 	if errFlag != nil {
 		panic(errFlag)
 	}
