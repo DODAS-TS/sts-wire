@@ -545,17 +545,26 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 	signalChan := make(chan os.Signal, 1)
 
 	checkRuntimeRcloneErrors := func() {
+		time.Sleep(checkRuntimeRcloneSleep)
+
 		for loop {
-			log.Debug().Msg("checkRuntimeRcloneErrors")
+			log.Debug().Int("lastLine", s.rcloneLogLine).Msg("checkRuntimeRcloneErrors")
 
 			foundErrors := false
 
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, s.rcloneLogLine) {
-				log.Debug().Err(errRcloneRuntime).Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
-
 				s.rcloneLogLine = rcloneLogError.LineNumber + 1
-				foundErrors = true
+
+				if !strings.Contains(rcloneLogError.Str, "(Operation not supported)") { //nolint:lll
+					log.Debug().Err(errRcloneRuntime).Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
+
+					foundErrors = true
+				} else {
+					log.Warn().Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
+				}
 			}
+
+			log.Debug().Bool("found", foundErrors).Int("lastLine", s.rcloneLogLine).Msg("checkRuntimeRcloneErrors")
 
 			if foundErrors {
 				log.Debug().Msg("rclone runtime error - interrupt rclone process")
@@ -605,8 +614,6 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 		case <-s.rcloneErrChan:
 			log.Debug().Msg("Unexpected rclone process exit")
 
-			loop = false
-
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, 0) {
 				log.Debug().Str("log string", rcloneLogError.Str).Msg("rclone error")
 			}
@@ -617,6 +624,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				s.numRemount++
 				color.Yellow.Printf("==> Try to remount... attempt %d\n", s.numRemount)
 				rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+
 				if errMount != nil {
 					panic(errMount)
 				}
@@ -628,6 +636,8 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 			} else {
 				color.Yellow.Println("==> Check the logs for more details...")
 				color.Green.Println("==> Program will exit immediately!")
+
+				loop = false
 			}
 
 		default:

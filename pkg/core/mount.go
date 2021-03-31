@@ -45,7 +45,7 @@ func ExePath() (string, error) {
 	return filepath.Join(cacheDir, rcloneExeString), nil
 }
 
-func CheckExeFile(rcloneFile string, originalData []byte) error {
+func CheckExeFile(rcloneFile string, originalData []byte) error { //nolint:funlen
 	var rcloneExeFile bytes.Buffer
 
 	rcloneFileReader, errOpen := os.Open(rcloneFile)
@@ -110,7 +110,7 @@ func CheckExeFile(rcloneFile string, originalData []byte) error {
 	return nil
 }
 
-func PrepareRclone() error { // nolint: funlen,gocognit
+func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	baseDir, errCacheDir := CacheDir()
 	if errCacheDir != nil {
 		return errCacheDir
@@ -222,7 +222,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll
+func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -283,6 +283,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		"--no-check-certificate",
 		"mount",
 		// "--daemon",
+		"--debug-fuse",
 		"--log-file",
 		logPath,
 		"--log-level=DEBUG",
@@ -299,6 +300,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		configPathAbs,
 		"--no-check-certificate",
 		"mount",
+		"--debug-fuse",
 		// "--daemon",
 		"--log-file",
 		logPath,
@@ -312,8 +314,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
-	errStart := rcloneCmd.Start()
-	if errStart != nil {
+	if errStart := rcloneCmd.Start(); errStart != nil {
 		panic(errStart)
 	}
 
@@ -400,8 +401,16 @@ type RcloneLogErrorMsg struct {
 	LineNumber int
 }
 
-func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg {
+func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //nolint:funlen,cyclop
 	outErrors := make(chan RcloneLogErrorMsg)
+
+	excludedFiles := make(map[string]bool)
+
+	excludedFiles[".hidden"] = false
+	excludedFiles[".git"] = false
+	excludedFiles[".gitignore"] = false
+	excludedFiles["commondir"] = false
+	excludedFiles["HEAD"] = false
 
 	go func() {
 		defer close(outErrors)
@@ -419,6 +428,8 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg {
 		fileScanner.Split(bufio.ScanLines)
 
 		lineNum := 0
+		curLookupFile := ""
+
 		for fileScanner.Scan() {
 			if lineNum >= fromLine {
 				curLine := fileScanner.Text()
@@ -427,10 +438,28 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg {
 				case strings.Contains(curLine, "INFO") && strings.Contains(curLine, "Exiting..."):
 					latestErrors = make([]RcloneLogErrorMsg, 0)
 				case strings.Contains(curLine, "error"), strings.Contains(curLine, "ERROR"):
-					latestErrors = append(latestErrors, RcloneLogErrorMsg{
-						Str:        curLine,
-						LineNumber: lineNum,
-					})
+					if lookingup, inMap := excludedFiles[curLookupFile]; inMap && lookingup {
+						log.Debug().Str("lookup", curLookupFile).Msg("jump excluded file")
+
+						excludedFiles[curLookupFile] = false
+					} else {
+						latestErrors = append(latestErrors, RcloneLogErrorMsg{
+							Str:        curLine,
+							LineNumber: lineNum,
+						})
+					}
+
+				case strings.Contains(curLine, "LOOKUP /"):
+					parts := strings.Split(curLine, " ")
+
+					filename := parts[1][1:]
+					curLookupFile = filename
+
+					log.Debug().Str("lookup", curLookupFile).Msg("lookup")
+
+					if _, inMap := excludedFiles[filename]; inMap {
+						excludedFiles[filename] = true
+					}
 				}
 			}
 
