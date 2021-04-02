@@ -257,21 +257,21 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 
 	configPathAbs, errConfigPath := filepath.Abs(filepath.Join(configPath, "/rclone.conf"))
 	if errConfigPath != nil {
-		log.Err(errConfigPath).Msg("server")
+		log.Err(errConfigPath).Msg("rclone - mount")
 
 		return nil, nil, "", fmt.Errorf("rclone config abs: %w", errConfigPath)
 	}
 
 	logPath, errLogPath := filepath.Abs(filepath.Join(configPath, "/rclone.log"))
 	if errLogPath != nil {
-		log.Err(errLogPath).Msg("server")
+		log.Err(errLogPath).Msg("rclone - mount")
 
 		return nil, nil, "", fmt.Errorf("rclone log abs: %w", errLogPath)
 	}
 
 	localPathAbs, errLocalPath := filepath.Abs(localPath)
 	if errLocalPath != nil {
-		log.Err(errLocalPath).Msg("server")
+		log.Err(errLocalPath).Msg("rclone - mount")
 
 		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
@@ -397,20 +397,13 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 }
 
 type RcloneLogErrorMsg struct {
-	Str        string
 	LineNumber int
+	Str        string
+	LookupFile string
 }
 
 func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //nolint:funlen,cyclop
 	outErrors := make(chan RcloneLogErrorMsg)
-
-	excludedFiles := make(map[string]bool)
-
-	excludedFiles[".hidden"] = false
-	excludedFiles[".git"] = false
-	excludedFiles[".gitignore"] = false
-	excludedFiles["commondir"] = false
-	excludedFiles["HEAD"] = false
 
 	go func() {
 		defer close(outErrors)
@@ -438,28 +431,17 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 				case strings.Contains(curLine, "INFO") && strings.Contains(curLine, "Exiting..."):
 					latestErrors = make([]RcloneLogErrorMsg, 0)
 				case strings.Contains(curLine, "error"), strings.Contains(curLine, "ERROR"):
-					if lookingup, inMap := excludedFiles[curLookupFile]; inMap && lookingup {
-						log.Debug().Str("lookup", curLookupFile).Msg("jump excluded file")
-
-						excludedFiles[curLookupFile] = false
-					} else {
-						latestErrors = append(latestErrors, RcloneLogErrorMsg{
-							Str:        curLine,
-							LineNumber: lineNum,
-						})
-					}
-
+					latestErrors = append(latestErrors, RcloneLogErrorMsg{
+						LineNumber: lineNum,
+						Str:        curLine,
+						LookupFile: curLookupFile,
+					})
 				case strings.Contains(curLine, "LOOKUP /"):
 					parts := strings.Split(curLine, " ")
-
 					filename := parts[1][1:]
 					curLookupFile = filename
 
 					log.Debug().Str("lookup", curLookupFile).Msg("lookup")
-
-					if _, inMap := excludedFiles[filename]; inMap {
-						excludedFiles[filename] = true
-					}
 				}
 			}
 

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -540,7 +541,7 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 	}
 }
 
-func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:funlen,cyclop,lll
+func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:funlen,cyclop,lll,gocognit
 	loop := true
 	signalChan := make(chan os.Signal, 1)
 
@@ -555,13 +556,32 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, s.rcloneLogLine) {
 				s.rcloneLogLine = rcloneLogError.LineNumber + 1
 
-				if !strings.Contains(rcloneLogError.Str, "(Operation not supported)") { //nolint:lll
+				switch {
+				case strings.Contains(rcloneLogError.Str, "(Operation not supported)"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - fuse")
+				case strings.Contains(rcloneLogError.Str, "(No such file or directory)"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - fuse")
+				default:
 					log.Debug().Err(errRcloneRuntime).Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
 
 					foundErrors = true
-				} else {
-					log.Warn().Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
 				}
+			}
+
+			localPathAbs, errLocalPath := filepath.Abs(s.LocalPath)
+			if errLocalPath != nil {
+				log.Err(errLocalPath).Msg("server")
+			}
+
+			if _, err := os.Stat(localPathAbs); os.IsNotExist(err) {
+				// not exist
+				log.Debug().Err(err).Msg("rclone runtime error - local mountpoint")
+
+				foundErrors = true
 			}
 
 			log.Debug().Bool("found", foundErrors).Int("lastLine", s.rcloneLogLine).Msg("checkRuntimeRcloneErrors")
@@ -614,11 +634,18 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 		case <-s.rcloneErrChan:
 			log.Debug().Msg("Unexpected rclone process exit")
 
+			errorsFound := false
+
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, 0) {
 				log.Debug().Str("log string", rcloneLogError.Str).Msg("rclone error")
+				errorsFound = true
 			}
 
-			color.Red.Println("==> Sorry, but rclone exited with errors")
+			if errorsFound {
+				color.Red.Println("==> Sorry, but rclone exited with errors...")
+			} else {
+				color.Red.Println("==> Sorry, but rclone exited...")
+			}
 
 			if s.TryRemount && s.numRemount < maxRemountAttempts {
 				s.numRemount++
@@ -632,7 +659,6 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				s.rcloneCmd = rcloneCmd
 				s.rcloneErrChan = errChan
 				s.rcloneLogPath = logPath
-
 			} else {
 				color.Yellow.Println("==> Check the logs for more details...")
 				color.Green.Println("==> Program will exit immediately!")
