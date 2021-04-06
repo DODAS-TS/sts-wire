@@ -86,7 +86,9 @@ type WebIdentityResult struct {
 
 // Retrieve credentials.
 func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
-	log.Debug().Msg("IAM - Retrieve")
+	log.Debug().Int("RefreshTokenRenew",
+		t.RefreshTokenRenew).Str("RefreshTokenRenew string",
+		strconv.Itoa(t.RefreshTokenRenew*60)).Msg("IAM - Retrieve")
 
 	body := url.Values{}
 	body.Set("Action", "AssumeRoleWithWebIdentity")

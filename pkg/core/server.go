@@ -350,9 +350,10 @@ func (s *Server) useRefreshToken() IAMCreds {
 	//sts, err := credentials.NewSTSWebIdentity("https://131.154.97.121:9001/", getWebTokenExpiry)
 	providers := []credentials.Provider{
 		&IAMProvider{ // nolint:exhaustivestruct
-			StsEndpoint: s.S3Endpoint,
-			Token:       accessToken,
-			HTTPClient:  &s.Client.HTTPClient,
+			StsEndpoint:       s.S3Endpoint,
+			Token:             accessToken,
+			HTTPClient:        &s.Client.HTTPClient,
+			RefreshTokenRenew: s.RefreshTokenRenew,
 		},
 	}
 
