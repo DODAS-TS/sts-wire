@@ -33,7 +33,12 @@ const (
 	maxRemountAttempts      = 10
 )
 
-var errRcloneRuntime = errors.New("rclone runtime error")
+var (
+	errRcloneRuntime  = errors.New("rclone runtime error")
+	errNoClientID     = errors.New("no ClientID available")
+	errNoClientSecret = errors.New("no Client Secret available")
+	errNoRefreshToken = errors.New("no Refresh Token available")
+)
 
 func availableRandomPort() (port string, err error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -476,6 +481,21 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 		s.CurClientResponse.ClientSecret).Str("grant_type",
 		"refresh_token").Str("refresh_token",
 		credsIAM.RefreshToken).Msg("Refresh token")
+
+	if s.CurClientResponse.ClientID == "" {
+		color.Red.Println("==> Sorry, there is no Client ID")
+		panic(errNoClientID)
+	}
+
+	if s.CurClientResponse.ClientSecret == "" {
+		color.Red.Println("==> Sorry, there is no Client Secret")
+		panic(errNoClientSecret)
+	}
+
+	if credsIAM.RefreshToken == "" {
+		color.Red.Println("==> Sorry, there is no Refresh Token")
+		panic(errNoRefreshToken)
+	}
 
 	v.Set("client_id", s.CurClientResponse.ClientID)
 	v.Set("client_secret", s.CurClientResponse.ClientSecret)
