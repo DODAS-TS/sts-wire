@@ -471,7 +471,11 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:funlen
 	v := url.Values{}
 
-	//fmt.Println(clientResponse.ClientID, clientResponse.ClientSecret, credsIAM.RefreshToken)
+	log.Debug().Str("client_id",
+		s.CurClientResponse.ClientID).Str("client_secret",
+		s.CurClientResponse.ClientSecret).Str("grant_type",
+		"refresh_token").Str("refresh_token",
+		credsIAM.RefreshToken).Msg("Refresh token")
 
 	v.Set("client_id", s.CurClientResponse.ClientID)
 	v.Set("client_secret", s.CurClientResponse.ClientSecret)
@@ -483,7 +487,7 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 		panic(err)
 	}
 
-	//fmt.Println(url.String())
+	log.Debug().Str("url", url.String()).Msg("Refresh token")
 
 	req := http.Request{ // nolint:exhaustivestruct
 		Method: "POST",
@@ -497,7 +501,7 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 	}
 
 	defer r.Body.Close()
-	//fmt.Println(r.StatusCode, r.Status)
+	log.Debug().Str("status", r.Status).Int("statusCode", r.StatusCode).Msg("Refresh token")
 
 	var (
 		bodyJSON RefreshTokenStruct
@@ -509,9 +513,8 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 		panic(err)
 	}
 
-	//fmt.Println(string(rbody))
+	log.Debug().Str("rbody", rbody.String()).Msg("Refresh token")
 
-	//fmt.Println(string(rbody))
 	err = json.Unmarshal(rbody.Bytes(), &bodyJSON)
 	if err != nil {
 		panic(err)
@@ -520,7 +523,7 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 	// TODO:
 	//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
 
-	//fmt.Println(bodyJSON.AccessToken)
+	log.Debug().Str("newAccessToken", bodyJSON.AccessToken).Msg("Refresh token")
 
 	curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
