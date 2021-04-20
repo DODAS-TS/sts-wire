@@ -61,6 +61,7 @@ var (
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
 	debug             bool   //nolint:gochecknoglobals
+	readOnly          bool   //nolint:gochecknoglobals
 	tryRemount        bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
 
@@ -166,12 +167,18 @@ var (
 				iamServer = os.Getenv("IAM_SERVER")
 			}
 
+			noPWD = noPWD || viper.GetBool("noPassword")
+			readOnly = readOnly || viper.GetBool("readOnly")
+			tryRemount = tryRemount || viper.GetBool("tryRemount")
+
 			log.Debug().Str("iamServer", iamServer).Msg("command")
 			log.Debug().Str("istance", instance).Msg("command")
 			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
 			log.Debug().Str("remote", remote).Msg("command")
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Bool("noPassword", noPWD).Msg("command")
+			log.Debug().Bool("readOnly", readOnly).Msg("command")
+			log.Debug().Bool("tryRemount", tryRemount).Msg("command")
 
 			if cfgFile != "" {
 				if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
@@ -350,6 +357,7 @@ var (
 				Endpoint:          endpoint,
 				CurClientResponse: clientResponse,
 				RefreshTokenRenew: refreshTokenRenew,
+				ReadOnly:          readOnly,
 				TryRemount:        tryRemount,
 			}
 
@@ -504,6 +512,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
 		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
+	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
 	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", false, "try to remount if there are any rclone errors (up to 10 times)")
 
 	errFlag := viper.BindPFlag("insecureConn", rootCmd.PersistentFlags().Lookup("insecureConn"))
@@ -517,16 +526,6 @@ func init() { //nolint: gochecknoinits
 	}
 
 	errFlag = viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
-	if errFlag != nil {
-		panic(errFlag)
-	}
-
-	errFlag = viper.BindPFlag("noPassword", rootCmd.PersistentFlags().Lookup("noPassword"))
-	if errFlag != nil {
-		panic(errFlag)
-	}
-
-	errFlag = viper.BindPFlag("tryRemount", rootCmd.PersistentFlags().Lookup("tryRemount"))
 	if errFlag != nil {
 		panic(errFlag)
 	}

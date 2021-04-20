@@ -87,6 +87,7 @@ type Server struct {
 	rcloneErrChan     chan error
 	rcloneLogPath     string
 	rcloneLogLine     int
+	ReadOnly          bool
 	TryRemount        bool
 	numRemount        int
 }
@@ -438,7 +439,13 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 		panic(err)
 	}
 
-	rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	rcloneCmd, errChan, logPath, errMount := MountVolume(
+		s.Instance,
+		s.RemotePath,
+		s.LocalPath,
+		s.Client.ConfDir,
+		s.ReadOnly,
+	)
 	if errMount != nil {
 		panic(errMount)
 	}
@@ -674,7 +681,13 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 			if s.TryRemount && s.numRemount < maxRemountAttempts {
 				s.numRemount++
 				color.Yellow.Printf("==> Try to remount... attempt %d\n", s.numRemount)
-				rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+				rcloneCmd, errChan, logPath, errMount := MountVolume(
+					s.Instance,
+					s.RemotePath,
+					s.LocalPath,
+					s.Client.ConfDir,
+					s.ReadOnly,
+				)
 
 				if errMount != nil {
 					panic(errMount)

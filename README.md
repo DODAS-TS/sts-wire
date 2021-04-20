@@ -93,7 +93,10 @@ Flags:
       --insecureConn            check the http connection certificate
       --log string              where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
       --noPassword              to not encrypt the data with a password
+      --readOnly                mount with read-only option
       --refreshTokenRenew int   time span to renew the refresh token in minutes (default 15)
+      --tryRemount              try to remount if there are any rclone errors (up to 10 times)
+
 
 Use "sts-wire [command] --help" for more information about a command.
 ```

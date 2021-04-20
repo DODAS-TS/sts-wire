@@ -222,7 +222,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -276,41 +276,50 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
 
-	log.Debug().Str("command", strings.Join([]string{
-		rcloneFile,
-		"--config",
-		configPathAbs,
-		"--no-check-certificate",
-		"mount",
-		// "--daemon",
-		"--debug-fuse",
-		"--log-file",
-		logPath,
-		"--log-level=DEBUG",
-		"--vfs-cache-mode",
-		"full",
-		"--no-modtime",
-		conf,
-		localPathAbs,
-	}, " ")).Msg("rclone - mount")
+	commandArgs := strings.Builder{}
 
-	rcloneCmd := exec.Command(
-		rcloneFile,
-		"--config",
-		configPathAbs,
-		"--no-check-certificate",
-		"mount",
-		"--debug-fuse",
-		// "--daemon",
-		"--log-file",
-		logPath,
-		"--log-level=DEBUG",
-		"--vfs-cache-mode",
-		"full",
-		"--no-modtime",
-		conf,
-		localPathAbs,
-	)
+	commandArgs.WriteString("--config")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(configPathAbs)
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("mount")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(conf)
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(localPathAbs)
+
+	commandFlags := strings.Builder{}
+	commandFlags.WriteString("--no-check-certificate")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--no-modtime")
+	commandFlags.WriteRune(' ')
+	// commandFlags.WriteString(// "--daemon")
+	// commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--log-file")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString(logPath)
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--log-level=DEBUG")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--debug-fuse")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-cache-mode")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("full")
+	if readOnly {
+		commandFlags.WriteRune(' ')
+		commandFlags.WriteString("--read-only")
+	}
+
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(commandFlags.String())
+
+	log.Debug().Str("command",
+		rcloneFile).Str("args",
+		commandArgs.String(),
+	).Msg("rclone - mount")
+
+	rcloneCmd := exec.Command(rcloneFile, strings.Split(commandArgs.String(), " ")...)
 
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
