@@ -62,6 +62,7 @@ var (
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
 	debug             bool   //nolint:gochecknoglobals
+	noModtime         bool   //nolint:gochecknoglobals
 	readOnly          bool   //nolint:gochecknoglobals
 	tryRemount        bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
@@ -169,6 +170,7 @@ var (
 			}
 
 			noPWD = noPWD || viper.GetBool("noPassword")
+			noModtime = noModtime || viper.GetBool("noModtime")
 			readOnly = readOnly || viper.GetBool("readOnly")
 			tryRemount = tryRemount || viper.GetBool("tryRemount")
 
@@ -178,6 +180,7 @@ var (
 			log.Debug().Str("remote", remote).Msg("command")
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Bool("noPassword", noPWD).Msg("command")
+			log.Debug().Bool("noModtime", noModtime).Msg("command")
 			log.Debug().Bool("readOnly", readOnly).Msg("command")
 			log.Debug().Bool("tryRemount", tryRemount).Msg("command")
 
@@ -367,6 +370,7 @@ var (
 				CurClientResponse: clientResponse,
 				RefreshTokenRenew: refreshTokenRenew,
 				ReadOnly:          readOnly,
+				NoModtime:         noModtime,
 				MountNewFlags:     rcloneMountFlags,
 				TryRemount:        tryRemount,
 			}
@@ -524,6 +528,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
 		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
+	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
 	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", false, "try to remount if there are any rclone errors (up to 10 times)")
 

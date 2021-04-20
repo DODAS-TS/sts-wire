@@ -87,6 +87,7 @@ type Server struct {
 	rcloneErrChan     chan error
 	rcloneLogPath     string
 	rcloneLogLine     int
+	NoModtime         bool
 	ReadOnly          bool
 	MountNewFlags     string
 	TryRemount        bool
@@ -446,6 +447,7 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 		s.LocalPath,
 		s.Client.ConfDir,
 		s.ReadOnly,
+		s.NoModtime,
 		s.MountNewFlags,
 	)
 	if errMount != nil {
@@ -689,6 +691,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 					s.LocalPath,
 					s.Client.ConfDir,
 					s.ReadOnly,
+					s.NoModtime,
 					s.MountNewFlags,
 				)
 

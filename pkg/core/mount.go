@@ -222,7 +222,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, noModtime bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -299,13 +299,17 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandArgs.WriteString(localPathAbs)
 
 	commandFlags := strings.Builder{}
-	commandFlags.WriteString("--no-modtime")
-	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--debug-fuse")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-cache-mode")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("full")
+
+	if noModtime {
+		commandFlags.WriteRune(' ')
+		commandFlags.WriteString("--no-modtime")
+	}
+
 	if readOnly {
 		commandFlags.WriteRune(' ')
 		commandFlags.WriteString("--read-only")
