@@ -57,6 +57,7 @@ var (
 	cfgFile           string //nolint:gochecknoglobals
 	logFile           string //nolint:gochecknoglobals
 	defaultLogFile    string //nolint:gochecknoglobals
+	rcloneMountFlags  string //nolint:gochecknoglobals
 	insecureConn      bool   //nolint:gochecknoglobals
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
@@ -294,6 +295,14 @@ var (
 			}
 
 			log.Debug().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
+			log.Debug().Str("rcloneMountFlags", rcloneMountFlags).Msg("command")
+
+			if rcloneMountFlags != "" {
+				if validMountFlags, err := validator.RcloneMountFlags(rcloneMountFlags); !validMountFlags {
+					panic(fmt.Errorf("not valid rclone mount flags %w", err))
+				}
+
+			}
 
 			// Create a CA certificate pool and add cert.pem to it
 			// TODO: convert ioutil.ReadFile to os
@@ -358,6 +367,7 @@ var (
 				CurClientResponse: clientResponse,
 				RefreshTokenRenew: refreshTokenRenew,
 				ReadOnly:          readOnly,
+				MountNewFlags:     rcloneMountFlags,
 				TryRemount:        tryRemount,
 			}
 
@@ -507,6 +517,8 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "./config.json", "config file")
 	rootCmd.PersistentFlags().StringVar(&logFile, "log", defaultLogFile,
 		"where the log has to write, a file path or stderr")
+	rootCmd.PersistentFlags().StringVar(&rcloneMountFlags, "rcloneMountFlags", rcloneMountFlags,
+		"overwrite the rclone mount flags")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "start the program in debug mode")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConn", false, "check the http connection certificate")
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
@@ -526,6 +538,11 @@ func init() { //nolint: gochecknoinits
 	}
 
 	errFlag = viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("rcloneMountFlags", rootCmd.PersistentFlags().Lookup("rcloneMountFlags"))
 	if errFlag != nil {
 		panic(errFlag)
 	}

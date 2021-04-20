@@ -222,7 +222,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -282,6 +282,16 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString(configPathAbs)
 	commandArgs.WriteRune(' ')
+	// commandArgs.WriteString(// "--daemon")
+	// commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--log-file")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(logPath)
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--log-level=DEBUG")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--no-check-certificate")
+	commandArgs.WriteRune(' ')
 	commandArgs.WriteString("mount")
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString(conf)
@@ -289,17 +299,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandArgs.WriteString(localPathAbs)
 
 	commandFlags := strings.Builder{}
-	commandFlags.WriteString("--no-check-certificate")
-	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--no-modtime")
-	commandFlags.WriteRune(' ')
-	// commandFlags.WriteString(// "--daemon")
-	// commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--log-file")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString(logPath)
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--log-level=DEBUG")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--debug-fuse")
 	commandFlags.WriteRune(' ')
@@ -312,7 +312,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	}
 
 	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(commandFlags.String())
+	if newFlags != "" {
+		commandArgs.WriteString(newFlags)
+	} else {
+		commandArgs.WriteString(commandFlags.String())
+	}
 
 	log.Debug().Str("command",
 		rcloneFile).Str("args",
