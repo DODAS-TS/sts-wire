@@ -102,6 +102,8 @@ Flags:
 Use "sts-wire [command] --help" for more information about a command.
 ```
 
+> **Note**: [supported rclone mount options](https://rclone.org/commands/rclone_mount/#options)
+
 As you can see, to use the `sts-wire` you need the following arguments to be passed:
 
 - `<IAM server>`: the name your IAM server where you can verify your credentials
