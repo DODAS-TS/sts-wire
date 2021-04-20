@@ -92,6 +92,7 @@ Flags:
   -h, --help                      help for sts-wire
       --insecureConn              check the http connection certificate
       --log string                where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
+      --noModtime                 mount with noModtime option
       --noPassword                to not encrypt the data with a password
       --rcloneMountFlags string   overwrite the rclone mount flags
       --readOnly                  mount with read-only option
