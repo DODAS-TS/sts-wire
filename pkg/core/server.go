@@ -592,6 +592,10 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				s.rcloneLogLine = rcloneLogError.LineNumber + 1
 
 				switch {
+				case strings.Contains(rcloneLogError.Str, "corrupted on transfer:"), strings.Contains(rcloneLogError.Str, "Failed to copy:"), strings.Contains(rcloneLogError.Str, "vfs cache: failed to upload try #"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - upload")
 				case strings.Contains(rcloneLogError.Str, "DEBUG : fuse:"):
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
