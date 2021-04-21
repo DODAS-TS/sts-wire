@@ -600,6 +600,10 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
 						rcloneLogError.Str).Msg("rclone runtime error - fuse")
+				case strings.Contains(rcloneLogError.Str, "DEBUG :"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error")
 				case strings.Contains(rcloneLogError.Str, "(Operation not supported)"):
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
