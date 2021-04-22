@@ -517,6 +517,7 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 		defer readFile.Close()
 
 		fileInfo, err := readFile.Stat()
+		log.Err(err).Str("logPath", logPath).Msg("failed to get stats of the log file")
 
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
@@ -551,6 +552,11 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 
 		if fileInfo.Size() >= oneMB*logMaxSizeMB {
 			go RcloneLogRotate(logPath)
+			latestErrors = append(latestErrors, RcloneLogErrorMsg{
+				LineNumber: 0,
+				Str:        "LOGROTATE",
+				LookupFile: "",
+			})
 		}
 
 		for _, foundErr := range latestErrors {
