@@ -3,14 +3,17 @@ package core
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -288,7 +291,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString(logPath)
 	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--log-level=DEBUG")
+	commandArgs.WriteString("--log-level")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("DEBUG")
+	// commandArgs.WriteRune(' ')
+	// commandArgs.WriteString("--use-json-log")
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString("--no-check-certificate")
 	commandArgs.WriteRune(' ')
@@ -421,6 +428,79 @@ type RcloneLogErrorMsg struct {
 	LookupFile string
 }
 
+func RcloneLogRotate(logPath string) {
+	readFile, err := os.Open(logPath)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to open log file for rotation")
+	}
+
+	defer readFile.Close()
+
+	logDir := filepath.Dir(logPath)
+
+	allFiles, err := ioutil.ReadDir(logDir)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to search other log files for rotation")
+	}
+
+	lastLogNum := -1
+
+	for _, file := range allFiles {
+		if strings.Contains(file.Name(), "rclone") && strings.Contains(file.Name(), ".log") { //nolint:nestif
+			curNum := strings.Replace(file.Name(), "rclone", "", 1)
+			curNum = strings.Replace(curNum, ".log", "", 1)
+			curNum = strings.Replace(curNum, ".gz", "", 1)
+
+			if len(curNum) == 0 {
+				lastLogNum = 0
+			} else {
+				tmpNum, err := strconv.ParseInt(curNum, 10, 32)
+				if err != nil {
+					log.Err(err).Str("logPath", logPath).Msg("failed to convert log file num for rotation")
+				}
+
+				if int(tmpNum) > lastLogNum {
+					lastLogNum = int(tmpNum)
+				}
+			}
+
+			log.Debug().Str("curNum", curNum).Int("lastLogNum", lastLogNum).Msg("search other log files for rotation")
+		}
+	}
+
+	lastLogNum++
+
+	log.Debug().Int("lastLogNum", lastLogNum).Msg("next log file for rotation")
+
+	newLogFileName := filepath.Join(logDir, fmt.Sprintf("rclone%d.log.gz", lastLogNum))
+
+	newLogFile, err := os.Create(newLogFileName)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to create log file for rotation")
+	}
+
+	defer newLogFile.Close()
+
+	writer, err := gzip.NewWriterLevel(newLogFile, gzip.BestCompression)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to create gzip log file writer for rotation")
+	}
+
+	defer writer.Close()
+
+	_, err = io.Copy(writer, readFile)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to copy log file for rotation")
+	}
+
+	err = os.Truncate(logPath, 0)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed truncate log file for rotation")
+	}
+
+	log.Debug().Str("logPath", logPath).Int("numRotation", lastLogNum).Msg("log file rotated")
+}
+
 func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //nolint:funlen,cyclop
 	outErrors := make(chan RcloneLogErrorMsg)
 
@@ -431,10 +511,12 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 
 		readFile, err := os.Open(logPath)
 		if err != nil {
-			log.Err(err).Str("logFile", logFile).Msg("failed to open log file")
+			log.Err(err).Str("logPath", logPath).Msg("failed to open log file")
 		}
 
 		defer readFile.Close()
+
+		fileInfo, err := readFile.Stat()
 
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
@@ -465,6 +547,10 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			}
 
 			lineNum++
+		}
+
+		if fileInfo.Size() >= oneMB*logMaxSizeMB {
+			go RcloneLogRotate(logPath)
 		}
 
 		for _, foundErr := range latestErrors {
