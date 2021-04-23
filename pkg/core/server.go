@@ -29,7 +29,7 @@ import (
 
 const (
 	deltaCheckTokenRefresh  = time.Duration(5 * time.Second)
-	checkRuntimeRcloneSleep = 10 * time.Second
+	checkRuntimeRcloneSleep = 60 * time.Second
 	maxRemountAttempts      = 10
 )
 
