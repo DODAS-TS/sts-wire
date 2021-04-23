@@ -310,6 +310,20 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandFlags := strings.Builder{}
 	commandFlags.WriteString("--debug-fuse")
 	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--write-back-cache")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-cache-poll-interval")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("1m")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-write-back")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("30s")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-write-wait")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("10s")
+	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-cache-mode")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("writes")
@@ -369,32 +383,35 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 				log.Debug().Int("exitCode",
 					exitCode).Msg("success")
 			case 1:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Syntax or usage error")
 			case 2:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Error not otherwise categorised")
 			case 3:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Directory not found")
 			case 4:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("File not found")
 			case 5:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Temporary error (one that more retries might fix) (Retry errors)")
 			case 6:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Less serious errors (like 461 errors from dropbox) (NoRetry errors)")
 			case 7:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Fatal error (one that more retries won't fix, like account suspended) (Fatal errors)")
 			case 8:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Transfer exceeded - limit set by --max-transfer reached")
 			case 9:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Operation successful, but no files transferred")
+			default:
+				log.Error().Int("exitCode",
+					exitCode).Msg("error on exit")
 			}
 		}
 
