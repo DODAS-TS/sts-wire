@@ -530,7 +530,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
-	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", false, "try to remount if there are any rclone errors (up to 10 times)")
+	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true, "try to remount if there are any rclone errors (up to 10 times)")
 
 	errFlag := viper.BindPFlag("insecureConn", rootCmd.PersistentFlags().Lookup("insecureConn"))
 	if errFlag != nil {
