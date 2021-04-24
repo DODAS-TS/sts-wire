@@ -602,6 +602,10 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
 						rcloneLogError.Str).Msg("rclone runtime error - retry")
+				case strings.Contains(rcloneLogError.Str, "ignoring"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - ignoring")
 				case strings.Contains(rcloneLogError.Str, "DEBUG : fuse:"):
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
