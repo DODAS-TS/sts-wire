@@ -680,8 +680,6 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 
 			loop = false
 
-			close(s.rcloneErrChan)
-
 			log.Debug().Msg("Interrupt rclone process")
 
 			errCmdInterrupt := s.rcloneCmd.Process.Signal(os.Interrupt)
@@ -695,6 +693,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, 0) {
 				log.Debug().Str("log string", rcloneLogError.Str).Msg("rclone error")
+
 				errorsFound = true
 			}
 
