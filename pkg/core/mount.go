@@ -301,6 +301,10 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString("--fast-list")
 	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--buffer-size")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("8M")
+	commandArgs.WriteRune(' ')
 	commandArgs.WriteString("mount")
 	commandArgs.WriteRune(' ')
 	commandArgs.WriteString(conf)
@@ -311,6 +315,14 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandFlags.WriteString("--debug-fuse")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--write-back-cache")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--attr-timeout")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("1m")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-read-ahead")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("8M")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-cache-poll-interval")
 	commandFlags.WriteRune(' ')
@@ -324,9 +336,13 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("10s")
 	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-cache-max-size")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("4G")
+	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-cache-mode")
 	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("writes")
+	commandFlags.WriteString("full")
 
 	if noModtime {
 		commandFlags.WriteRune(' ')
@@ -339,6 +355,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	}
 
 	commandArgs.WriteRune(' ')
+
 	if newFlags != "" {
 		commandArgs.WriteString(newFlags)
 	} else {
@@ -361,6 +378,8 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	cmdErr := make(chan error)
 
 	cmdErrorCheck := func() {
+		defer close(cmdErr)
+
 		procState, errWait := rcloneCmd.Process.Wait()
 
 		// Wait for main server to close channel if User pressed Ctrl+C
@@ -420,8 +439,6 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 			if errWait != nil {
 				cmdErr <- errWait
 			}
-
-			defer close(cmdErr)
 		} else {
 			if errWait == nil {
 				// rclone not exited after user pressed Ctrl+C
