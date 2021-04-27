@@ -602,6 +602,10 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
 						rcloneLogError.Str).Msg("rclone runtime error - retry")
+				case strings.Contains(rcloneLogError.Str, "Dir.Remove not empty"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - remove not empty dir")
 				case strings.Contains(rcloneLogError.Str, "ignoring"):
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
