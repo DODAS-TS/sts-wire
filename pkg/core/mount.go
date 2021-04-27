@@ -326,7 +326,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-cache-poll-interval")
 	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("1m")
+	commandFlags.WriteString("15m")
 	commandFlags.WriteRune(' ')
 	commandFlags.WriteString("--vfs-write-back")
 	commandFlags.WriteRune(' ')
