@@ -137,10 +137,10 @@ func RcloneMountFlags(flagList string) (bool, error) {
 				continue
 			case *regexp.Regexp:
 				nextPart := parts[idx+1]
-				fmt.Println(nextPart, checkMethod.MatchString(nextPart))
 				if !checkMethod.MatchString(nextPart) {
 					return false, fmt.Errorf("%w '%s %s'", ErrNoValidRcloneMountOption, curPart, nextPart)
 				}
+
 				idx++
 			case []string:
 				nextPart := parts[idx+1]
