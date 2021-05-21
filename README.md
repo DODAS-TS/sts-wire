@@ -2,7 +2,7 @@
 
 # STS WIRE
 
-### :warning: Attention! :bulb: Tips for new releases
+### :warning: Attention! :bulb: Tip for new releases
 
 If you are downloading a new release version it is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
 
