@@ -26,11 +26,11 @@ type InitClientConfig struct {
 }
 
 func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,cyclop,gocognit,lll
-	filename := t.ConfDir + "/" + instance + ".json"
+	instanceConfFilename := t.ConfDir + "/" + instance + ".json"
 
-	log.Debug().Str("filename", filename).Msg("credentials - init client")
+	log.Debug().Str("filename", instanceConfFilename).Msg("credentials - init client")
 
-	confFile, err := os.Open(filename)
+	confFile, err := os.Open(instanceConfFilename)
 
 	switch {
 	case err != nil && err.Error() != "no such file or directory":
@@ -114,9 +114,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 			dumpClient := Encrypt(rbody.Bytes(), passwd)
 
-			filename := t.ConfDir + "/" + instance + ".json"
-
-			curFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+			curFile, err := os.OpenFile(instanceConfFilename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 			if err != nil {
 				log.Err(err).Msg("credentials - dump client")
 
@@ -139,9 +137,10 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		}
 	case err == nil && !t.NoPWD:
 		var errGetPasswd error
-		defer confFile.Close()
 
 		var rbody bytes.Buffer
+
+		defer confFile.Close()
 
 		_, err = rbody.ReadFrom(confFile)
 		if err != nil {
@@ -152,6 +151,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 		if os.Getenv("REFRESH_TOKEN") == "" {
 			passMsg := fmt.Sprintf("%s Insert a pasword for the secret's decryption: ", color.Yellow.Sprint("==>"))
+
 			passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
 
 			if errGetPasswd != nil {

@@ -2,6 +2,13 @@ package core
 
 import _ "embed"
 
+type InstanceInfo struct {
+	Name     string
+	LogFile  string
+	Port     int
+	Password bool
+}
+
 const (
 	exeFileMode  = 0750
 	fileMode     = 0644
