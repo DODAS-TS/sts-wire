@@ -3,14 +3,17 @@ package core
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -222,7 +225,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, noModtime bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	errPrepare := PrepareRclone()
@@ -276,41 +279,64 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
 
-	log.Debug().Str("command", strings.Join([]string{
-		rcloneFile,
-		"--config",
-		configPathAbs,
-		"--no-check-certificate",
-		"mount",
-		// "--daemon",
-		"--debug-fuse",
-		"--log-file",
-		logPath,
-		"--log-level=DEBUG",
-		"--vfs-cache-mode",
-		"full",
-		"--no-modtime",
-		conf,
-		localPathAbs,
-	}, " ")).Msg("rclone - mount")
+	commandArgs := strings.Builder{}
 
-	rcloneCmd := exec.Command(
-		rcloneFile,
-		"--config",
-		configPathAbs,
-		"--no-check-certificate",
-		"mount",
-		"--debug-fuse",
-		// "--daemon",
-		"--log-file",
-		logPath,
-		"--log-level=DEBUG",
-		"--vfs-cache-mode",
-		"full",
-		"--no-modtime",
-		conf,
-		localPathAbs,
-	)
+	commandArgs.WriteString("--config")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(configPathAbs)
+	commandArgs.WriteRune(' ')
+	// commandArgs.WriteString(// "--daemon")
+	// commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--log-file")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(logPath)
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--log-level")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("DEBUG")
+	// commandArgs.WriteRune(' ')
+	// commandArgs.WriteString("--use-json-log")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--no-check-certificate")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("--fast-list")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString("mount")
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(conf)
+	commandArgs.WriteRune(' ')
+	commandArgs.WriteString(localPathAbs)
+
+	commandFlags := strings.Builder{}
+	commandFlags.WriteString("--debug-fuse")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("--vfs-cache-mode")
+	commandFlags.WriteRune(' ')
+	commandFlags.WriteString("writes")
+
+	if noModtime {
+		commandFlags.WriteRune(' ')
+		commandFlags.WriteString("--no-modtime")
+	}
+
+	if readOnly {
+		commandFlags.WriteRune(' ')
+		commandFlags.WriteString("--read-only")
+	}
+
+	commandArgs.WriteRune(' ')
+	if newFlags != "" {
+		commandArgs.WriteString(newFlags)
+	} else {
+		commandArgs.WriteString(commandFlags.String())
+	}
+
+	log.Debug().Str("command",
+		rcloneFile).Str("args",
+		commandArgs.String(),
+	).Msg("rclone - mount")
+
+	rcloneCmd := exec.Command(rcloneFile, strings.Split(commandArgs.String(), " ")...)
 
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
@@ -402,6 +428,79 @@ type RcloneLogErrorMsg struct {
 	LookupFile string
 }
 
+func RcloneLogRotate(logPath string) {
+	readFile, err := os.Open(logPath)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to open log file for rotation")
+	}
+
+	defer readFile.Close()
+
+	logDir := filepath.Dir(logPath)
+
+	allFiles, err := ioutil.ReadDir(logDir)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to search other log files for rotation")
+	}
+
+	lastLogNum := -1
+
+	for _, file := range allFiles {
+		if strings.Contains(file.Name(), "rclone") && strings.Contains(file.Name(), ".log") { //nolint:nestif
+			curNum := strings.Replace(file.Name(), "rclone", "", 1)
+			curNum = strings.Replace(curNum, ".log", "", 1)
+			curNum = strings.Replace(curNum, ".gz", "", 1)
+
+			if len(curNum) == 0 {
+				lastLogNum = 0
+			} else {
+				tmpNum, err := strconv.ParseInt(curNum, 10, 32)
+				if err != nil {
+					log.Err(err).Str("logPath", logPath).Msg("failed to convert log file num for rotation")
+				}
+
+				if int(tmpNum) > lastLogNum {
+					lastLogNum = int(tmpNum)
+				}
+			}
+
+			log.Debug().Str("curNum", curNum).Int("lastLogNum", lastLogNum).Msg("search other log files for rotation")
+		}
+	}
+
+	lastLogNum++
+
+	log.Debug().Int("lastLogNum", lastLogNum).Msg("next log file for rotation")
+
+	newLogFileName := filepath.Join(logDir, fmt.Sprintf("rclone%d.log.gz", lastLogNum))
+
+	newLogFile, err := os.Create(newLogFileName)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to create log file for rotation")
+	}
+
+	defer newLogFile.Close()
+
+	writer, err := gzip.NewWriterLevel(newLogFile, gzip.BestCompression)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to create gzip log file writer for rotation")
+	}
+
+	defer writer.Close()
+
+	_, err = io.Copy(writer, readFile)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed to copy log file for rotation")
+	}
+
+	err = os.Truncate(logPath, 0)
+	if err != nil {
+		log.Err(err).Str("logPath", logPath).Msg("failed truncate log file for rotation")
+	}
+
+	log.Debug().Str("logPath", logPath).Int("numRotation", lastLogNum).Msg("log file rotated")
+}
+
 func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //nolint:funlen,cyclop
 	outErrors := make(chan RcloneLogErrorMsg)
 
@@ -412,10 +511,15 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 
 		readFile, err := os.Open(logPath)
 		if err != nil {
-			log.Err(err).Str("logFile", logFile).Msg("failed to open log file")
+			log.Err(err).Str("logPath", logPath).Msg("failed to open log file")
 		}
 
 		defer readFile.Close()
+
+		fileInfo, err := readFile.Stat()
+		if err != nil {
+			log.Err(err).Str("logPath", logPath).Msg("failed to get stats of the log file")
+		}
 
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
@@ -446,6 +550,16 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			}
 
 			lineNum++
+		}
+
+		if fileInfo.Size() >= oneMB*logMaxSizeMB {
+			go RcloneLogRotate(logPath)
+
+			latestErrors = append(latestErrors, RcloneLogErrorMsg{
+				LineNumber: 0,
+				Str:        "LOGROTATE",
+				LookupFile: "",
+			})
 		}
 
 		for _, foundErr := range latestErrors {

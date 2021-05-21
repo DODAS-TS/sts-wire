@@ -87,6 +87,9 @@ type Server struct {
 	rcloneErrChan     chan error
 	rcloneLogPath     string
 	rcloneLogLine     int
+	NoModtime         bool
+	ReadOnly          bool
+	MountNewFlags     string
 	TryRemount        bool
 	numRemount        int
 }
@@ -438,7 +441,15 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 		panic(err)
 	}
 
-	rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+	rcloneCmd, errChan, logPath, errMount := MountVolume(
+		s.Instance,
+		s.RemotePath,
+		s.LocalPath,
+		s.Client.ConfDir,
+		s.ReadOnly,
+		s.NoModtime,
+		s.MountNewFlags,
+	)
 	if errMount != nil {
 		panic(errMount)
 	}
@@ -581,6 +592,24 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				s.rcloneLogLine = rcloneLogError.LineNumber + 1
 
 				switch {
+				case rcloneLogError.Str == "LOGROTATE":
+					s.rcloneLogLine = rcloneLogError.LineNumber
+				case strings.Contains(rcloneLogError.Str, "corrupted on transfer:"), strings.Contains(rcloneLogError.Str, "Failed to copy:"), strings.Contains(rcloneLogError.Str, "vfs cache: failed to upload try #"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - upload")
+				case strings.Contains(rcloneLogError.Str, "retry"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - retry")
+				case strings.Contains(rcloneLogError.Str, "DEBUG : fuse:"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error - fuse")
+				case strings.Contains(rcloneLogError.Str, "DEBUG :"):
+					log.Warn().Str("lookup",
+						rcloneLogError.LookupFile).Str("log string",
+						rcloneLogError.Str).Msg("rclone runtime error")
 				case strings.Contains(rcloneLogError.Str, "(Operation not supported)"):
 					log.Warn().Str("lookup",
 						rcloneLogError.LookupFile).Str("log string",
@@ -674,7 +703,15 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 			if s.TryRemount && s.numRemount < maxRemountAttempts {
 				s.numRemount++
 				color.Yellow.Printf("==> Try to remount... attempt %d\n", s.numRemount)
-				rcloneCmd, errChan, logPath, errMount := MountVolume(s.Instance, s.RemotePath, s.LocalPath, s.Client.ConfDir)
+				rcloneCmd, errChan, logPath, errMount := MountVolume(
+					s.Instance,
+					s.RemotePath,
+					s.LocalPath,
+					s.Client.ConfDir,
+					s.ReadOnly,
+					s.NoModtime,
+					s.MountNewFlags,
+				)
 
 				if errMount != nil {
 					panic(errMount)

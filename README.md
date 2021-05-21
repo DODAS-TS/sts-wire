@@ -2,6 +2,14 @@
 
 # STS WIRE
 
+### :warning: Attention! :bulb: Tip for new releases
+
+If you are downloading a new release version it is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
+
+```bash
+./sts-wire clean
+```
+
 ## :information_source: Requirements
 
 - fuse installed (Linux and Macos)
@@ -22,21 +30,21 @@ Download the binary from the latest release on [github](https://github.com/DODAS
 ### Linux
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_linux
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_linux
 chmod +x sts-wire_linux
 mv sts-wire_linux /usr/local/bin/sts-wire
 ```
 ### MacOS
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_osx
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_osx
 chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin/sts-wire
 ```
 
 ### Windows
 
-Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_windows.exe](https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_windows.exe)
+Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_windows.exe](https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_windows.exe)
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
@@ -87,16 +95,23 @@ Available Commands:
   version     Print the version number of sts-wire
 
 Flags:
-      --config string           config file (default "./config.json")
-      --debug                   start the program in debug mode
-  -h, --help                    help for sts-wire
-      --insecureConn            check the http connection certificate
-      --log string              where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
-      --noPassword              to not encrypt the data with a password
-      --refreshTokenRenew int   time span to renew the refresh token in minutes (default 15)
+      --config string             config file (default "./config.json")
+      --debug                     start the program in debug mode
+  -h, --help                      help for sts-wire
+      --insecureConn              check the http connection certificate
+      --log string                where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
+      --noModtime                 mount with noModtime option
+      --noPassword                to not encrypt the data with a password
+      --rcloneMountFlags string   overwrite the rclone mount flags
+      --readOnly                  mount with read-only option
+      --refreshTokenRenew int     time span to renew the refresh token in minutes (default 15)
+      --tryRemount                try to remount if there are any rclone errors (up to 10 times)
+
 
 Use "sts-wire [command] --help" for more information about a command.
 ```
+
+> **Note**: [supported rclone mount options](https://rclone.org/commands/rclone_mount/#options)
 
 As you can see, to use the `sts-wire` you need the following arguments to be passed:
 

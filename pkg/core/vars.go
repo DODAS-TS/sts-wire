@@ -2,10 +2,19 @@ package core
 
 import _ "embed"
 
+type InstanceInfo struct {
+	Name     string
+	LogFile  string
+	Port     int
+	Password bool
+}
+
 const (
-	exeFileMode = 0750
-	fileMode    = 0644
-	divider     = "------------------------------------------------------------------------------"
+	exeFileMode  = 0750
+	fileMode     = 0644
+	divider      = "------------------------------------------------------------------------------"
+	logMaxSizeMB = 100
+	oneMB        = 1000000
 )
 
 var (
