@@ -2,6 +2,16 @@
 
 # STS WIRE
 
+### :warning: Attention! 
+
+#### :bulb: Tips for new releases
+
+If you are downloading a new release version is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
+
+```bash
+./sts-wire clean
+```
+
 ## :information_source: Requirements
 
 - fuse installed (Linux and Macos)
