@@ -2,11 +2,9 @@
 
 # STS WIRE
 
-### :warning: Attention! 
+### :warning: Attention! :bulb: Tips for new releases
 
-#### :bulb: Tips for new releases
-
-If you are downloading a new release version is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
+If you are downloading a new release version it is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
 
 ```bash
 ./sts-wire clean
