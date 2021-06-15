@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -202,55 +203,9 @@ var (
 				}
 			}
 
-			confDir = "." + instance
-
-			_, errStat := os.Stat(confDir)
-			if os.IsNotExist(errStat) {
-				errMkdir := os.MkdirAll(confDir, os.ModePerm)
-
-				if errMkdir != nil {
-					log.Err(errMkdir).Msg("command cannot create instance folder")
-					panic(errMkdir)
-				}
-
-			}
-
-			log.Debug().Str("confDir", confDir).Msg("command")
-
-			instanceLogFilename = filepath.Join(confDir, "instance.log")
-
-			instanceLogFile, errOpenLog := os.OpenFile(instanceLogFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
-			if errOpenLog != nil {
-				panic(errOpenLog)
-			}
-
-			defer instanceLogFile.Close()
-
-			instanceRef, errInstanceFile := os.OpenFile(path.Join(confDir, "instance.info"), os.O_WRONLY|os.O_CREATE, fileMode)
-			if errInstanceFile != nil {
-				panic(errInstanceFile)
-			}
-
-			_, errWriteInstance := instanceRef.WriteString(fmt.Sprintf("---\nname: %s\nlog: ./instance.log\n", instance))
-			if errWriteInstance != nil {
-				panic(errWriteInstance)
-			}
-
-			instanceRef.Close()
-
-			var multi zerolog.LevelWriter
-			if firstLogWriter != nil {
-				multi = zerolog.MultiLevelWriter(firstLogWriter, instanceLogFile)
-			} else {
-				multi = zerolog.MultiLevelWriter(
-					zerolog.ConsoleWriter{Out: os.Stderr}, //nolint: exhaustivestruct
-					instanceLogFile,
-				)
-			}
-			log.Logger = zerolog.New(multi).With().Timestamp().Logger()
-
+			// -------------------- CONFIG IAM URL AND PORT --------------------
 			iamcURL := "localhost"
-			iamcPort := 0
+			var iamcPort int
 
 			if newIamcURL := viper.GetString("IAMAuthURL"); newIamcURL != "" {
 				if valid, err := validator.WebURL(newIamcURL); !valid || err != nil {
@@ -289,6 +244,95 @@ var (
 				ClientName: "oidc-client",
 			}
 
+			// ------------------------ CONFIG INSTANCE ------------------------
+			confDir = "." + instance
+
+			_, errStat := os.Stat(confDir)
+			if os.IsNotExist(errStat) {
+				errMkdir := os.MkdirAll(confDir, os.ModePerm)
+
+				if errMkdir != nil {
+					log.Err(errMkdir).Msg("command cannot create instance folder")
+					panic(errMkdir)
+				}
+
+			}
+
+			log.Debug().Str("confDir", confDir).Msg("command")
+
+			// ---------------------- CONFIG INSTANCE LOG ----------------------
+			instanceLogFilename = filepath.Join(confDir, "instance.log")
+
+			instanceLogFile, errOpenLog := os.OpenFile(instanceLogFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, fileMode)
+			if errOpenLog != nil {
+				panic(errOpenLog)
+			}
+
+			defer instanceLogFile.Close()
+
+			var multi zerolog.LevelWriter
+			if firstLogWriter != nil {
+				multi = zerolog.MultiLevelWriter(firstLogWriter, instanceLogFile)
+			} else {
+				multi = zerolog.MultiLevelWriter(
+					zerolog.ConsoleWriter{Out: os.Stderr}, //nolint: exhaustivestruct
+					instanceLogFile,
+				)
+			}
+			log.Logger = zerolog.New(multi).With().Timestamp().Logger()
+
+			// ---------------------- CONFIG INSTANCE INFO ---------------------
+			instanceFilename := path.Join(confDir, "instance.info")
+
+			_, errStats := os.Stat(instanceFilename)
+			if os.IsNotExist(errStats) {
+				instanceRef, errInstanceFile := os.OpenFile(instanceFilename, os.O_WRONLY|os.O_CREATE, fileMode)
+				if errInstanceFile != nil {
+					panic(errInstanceFile)
+				}
+
+				infoBytes, errMarshall := json.MarshalIndent(InstanceInfo{
+					Name:     instance,
+					LogFile:  "./instance.log",
+					Port:     iamcPort,
+					Password: !noPWD,
+				}, "", "  ")
+
+				if errMarshall != nil {
+					panic(errMarshall)
+				}
+
+				if _, errWrite := instanceRef.Write(infoBytes); errWrite != nil {
+					panic(errWrite)
+				}
+
+				instanceRef.Close()
+			} else {
+				instanceFile, errOpenLog := os.Open(instanceFilename)
+				if errOpenLog != nil {
+					panic(errOpenLog)
+				}
+
+				defer instanceFile.Close()
+
+				var curInstanceInfo InstanceInfo
+				var buffer bytes.Buffer
+
+				_, errReadInstance := buffer.ReadFrom(instanceFile)
+				if errReadInstance != nil {
+					panic(errOpenLog)
+				}
+
+				if errUnmarshal := json.Unmarshal(buffer.Bytes(), &curInstanceInfo); errUnmarshal != nil {
+					panic(errUnmarshal)
+				}
+
+				if curInstanceInfo.Password {
+					clientConfig.Port = curInstanceInfo.Port
+				}
+			}
+
+			// ------------------- CONFIG REFRESH TOKEN INFO -------------------
 			if newRefreshTokenRenew := viper.GetInt("refreshTokenRenew"); newRefreshTokenRenew != 0 && refreshTokenRenew == 15 {
 				refreshTokenRenew = newRefreshTokenRenew
 			}

@@ -2,6 +2,14 @@
 
 # STS WIRE
 
+### :warning: Attention! :bulb: Tip for new releases
+
+If you are downloading a new release version it is suggested to clean the old configurations. Thus, before use `sts-wire` use the command clean as follows:
+
+```bash
+./sts-wire clean
+```
+
 ## :information_source: Requirements
 
 - fuse installed (Linux and Macos)
@@ -22,21 +30,21 @@ Download the binary from the latest release on [github](https://github.com/DODAS
 ### Linux
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_linux
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_linux
 chmod +x sts-wire_linux
 mv sts-wire_linux /usr/local/bin/sts-wire
 ```
 ### MacOS
 
 ```bash
-wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_osx
+wget https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_osx
 chmod +x sts-wire_osx
 mv sts-wire_osx /usr/local/bin/sts-wire
 ```
 
 ### Windows
 
-Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_windows.exe](https://github.com/DODAS-TS/sts-wire/releases/download/v1.2.2/sts-wire_windows.exe)
+Download the binary with the browser and rename it `sts-wire`: [https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_windows.exe](https://github.com/DODAS-TS/sts-wire/releases/download/v1.3.2/sts-wire_windows.exe)
 
 **Note:** it is suggested to use the [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701?activetab=pivot:overviewtab)
 
