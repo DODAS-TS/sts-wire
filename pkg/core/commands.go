@@ -348,7 +348,6 @@ var (
 				if validMountFlags, err := validator.RcloneMountFlags(rcloneMountFlags); !validMountFlags {
 					panic(fmt.Errorf("not valid rclone mount flags %w", err))
 				}
-
 			}
 
 			// Create a CA certificate pool and add cert.pem to it
@@ -483,7 +482,7 @@ var (
 				os.RemoveAll(curLog)
 			}
 
-			fmt.Println("==> sts-wire env cleaned!")
+			fmt.Printf("==> sts-wire env cleaned!\n")
 		},
 	}
 
@@ -491,8 +490,12 @@ var (
 		Use:   "report",
 		Short: "search and open sts-wire reports",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("==> Please select a report:")
+			fmt.Printf("==> Please select a report:\n")
 			report := prompt.Input("> ", reportCompleter)
+
+			if report == "quit" {
+				os.Exit(0)
+			}
 
 			reportFile, err := os.Open(report)
 			if err != nil {
@@ -508,14 +511,17 @@ var (
 				panic(err)
 			}
 
-			fmt.Println(divider)
-			fmt.Print(buffer.String())
+			fmt.Printf("%s\n%s\n", divider, buffer.String())
 		},
 	}
 )
 
 func reportCompleter(d prompt.Document) []prompt.Suggest {
 	suggestions := []prompt.Suggest{}
+
+	suggestions = append(suggestions, prompt.Suggest{
+		Text: "quit", Description: "exit from report command",
+	})
 
 	matches, _ := filepath.Glob("./.**/report_*.out")
 	for _, match := range matches {
@@ -574,7 +580,8 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
-	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true, "try to remount if there are any rclone errors (up to 10 times)")
+	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true,
+		"try to remount if there are any rclone errors (up to 10 times)")
 
 	errFlag := viper.BindPFlag("insecureConn", rootCmd.PersistentFlags().Lookup("insecureConn"))
 	if errFlag != nil {
@@ -626,6 +633,6 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("==> sts-wire is using config file:", viper.ConfigFileUsed())
+		fmt.Printf("==> sts-wire is using config file: %s\n", viper.ConfigFileUsed())
 	}
 }
