@@ -228,8 +228,7 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, noModtime bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
-	errPrepare := PrepareRclone()
-	if errPrepare != nil {
+	if errPrepare := PrepareRclone(); errPrepare != nil {
 		log.Err(errPrepare).Msg("rclone - mount")
 
 		return nil, nil, "", errPrepare
@@ -242,11 +241,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", errExePath
 	}
 
-	log.Debug().Str("action", "make local dir").Msg("rclone - mount")
-
 	if runtime.GOOS != "windows" {
 		_, errLocalPath := os.Stat(localPath)
 		if os.IsNotExist(errLocalPath) {
+			log.Debug().Str("action", "make local dir").Msg("rclone - mount")
+
 			errMkdir := os.MkdirAll(localPath, os.ModePerm)
 			if errMkdir != nil {
 				panic(errMkdir)
@@ -279,89 +278,81 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
 
-	commandArgs := strings.Builder{}
+	commandArgs := []string{
+		"--config",
+		configPathAbs,
+		// "--daemon",
+		"--log-file",
+		logPath,
+		"--log-level",
+		"DEBUG",
+		"--use-json-log",
+		"--no-check-certificate",
+		"--cache-db-purge",
+		/*
+		 * https://rclone.org/docs/#use-server-modtime
+		 * https://rclone.org/commands/rclone_mount/#vfs-performance
+		 *
+		 * Some object-store backends (e.g, Swift, S3) do not preserve
+		 * file modification times (modtime). On these backends,
+		 * rclone stores the original modtime as additional
+		 * metadata on the object. By default it will make an API
+		 * call to retrieve the metadata when the modtime
+		 * is needed by an operation.
+		 */
+		"--use-server-modtime",
+		/*
+		 * https://rclone.org/docs/#no-update-modtime
+		 *
+		 * When using this flag, rclone won't update modification times of
+		 * remote files if they are incorrect as it would normally.
+		 */
+		"--no-update-modtime",
+		/*
+		 * https://rclone.org/docs/#c-checksum
+		 *
+		 * Normally rclone will look at modification time and size of files
+		 * to see if they are equal. If you set this flag then rclone
+		 * will check the file hash and size to determine if files are equal.
+		 */
+		"--checksum",
+		"mount",
+		conf,
+		localPathAbs,
+	}
 
-	commandArgs.WriteString("--config")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(configPathAbs)
-	commandArgs.WriteRune(' ')
-	// commandArgs.WriteString(// "--daemon")
-	// commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--log-file")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(logPath)
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--log-level")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("DEBUG")
-	commandArgs.WriteRune(' ')
-	// commandArgs.WriteString("--use-json-log")
-	// commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--no-check-certificate")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--cache-db-purge")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("mount")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(conf)
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(localPathAbs)
-
-	commandFlags := strings.Builder{}
-	commandFlags.WriteString("--debug-fuse")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--attr-timeout")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("1m")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--poll-interval")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("10m")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--dir-cache-time")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("1h")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--vfs-cache-poll-interval")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("1h")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--vfs-write-back")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("30s")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--vfs-write-wait")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("5s")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--vfs-cache-mode")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("writes")
+	commandFlags := []string{
+		// TODO: fix -> increase the volume of log for no purpose
+		// "--debug-fuse",
+		"--vfs-cache-mode",
+		"writes",
+		// TODO: fix -> not working
+		// "--filter",
+		// "- *-checkpoint.ipynb",
+		// "--filter",
+		// "- .ipynb_checkpoints",
+	}
 
 	if noModtime {
-		commandFlags.WriteRune(' ')
-		commandFlags.WriteString("--no-modtime")
+		commandFlags = append(commandFlags, "--no-modtime")
 	}
 
 	if readOnly {
-		commandFlags.WriteRune(' ')
-		commandFlags.WriteString("--read-only")
+		commandFlags = append(commandFlags, "--read-only")
 	}
 
-	commandArgs.WriteRune(' ')
-
 	if newFlags != "" {
-		commandArgs.WriteString(newFlags)
+		commandArgs = strings.Split(newFlags, " ")
 	} else {
-		commandArgs.WriteString(commandFlags.String())
+		commandArgs = append(commandArgs, commandFlags...)
 	}
 
 	log.Debug().Str("command",
-		rcloneFile).Str("args",
-		commandArgs.String(),
+		rcloneFile).Interface("args",
+		commandArgs,
 	).Msg("rclone - mount")
 
-	rcloneCmd := exec.Command(rcloneFile, strings.Split(commandArgs.String(), " ")...)
+	rcloneCmd := exec.Command(rcloneFile, commandArgs...)
 
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
@@ -456,7 +447,7 @@ type RcloneLogErrorMsg struct {
 	LookupFile string
 }
 
-func RcloneLogRotate(logPath string) {
+func RcloneLogRotate(logPath string) { //nolint:funlen
 	readFile, err := os.Open(logPath)
 	if err != nil {
 		log.Err(err).Str("logPath", logPath).Msg("failed to open log file for rotation")
