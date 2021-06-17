@@ -3,16 +3,16 @@
 package core
 
 import (
-	"os"
-	"path/filepath"
 	"syscall"
 
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sys/unix"
 )
 
 func unmount(path string) error {
 	err := syscall.Unmount(path, 0)
+
+	log.Debug().Err(err).Msg("umount - linux")
+
 	if err != nil {
 		if err != syscall.EINVAL {
 			return err

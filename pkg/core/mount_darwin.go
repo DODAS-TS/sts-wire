@@ -2,10 +2,17 @@
 
 package core
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/rs/zerolog/log"
+)
 
 func unmount(path string) error {
 	err := syscall.Unmount(path, 0)
+
+	log.Debug().Err(err).Msg("umount - linux")
+
 	if err != nil {
 		if err != syscall.EINVAL {
 			return err
