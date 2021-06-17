@@ -35,7 +35,7 @@ func checkMountpoint(path string) (bool, error) {
 		return false, &os.PathError{Op: "stat", Path: parent, Err: err}
 	}
 
-	log.Debug().Int32("dev", dev).Int32("parent dev", st.Dev).Msg("checkMountpoint")
+	log.Debug().Int("dev", int(dev)).Int("parent dev", int(st.Dev)).Msg("checkMountpoint")
 
 	if dev != st.Dev {
 		// If the Device differs from that of parent, it is a mount point
