@@ -5,7 +5,7 @@ GITCOMMIT = $(shell git rev-parse --short HEAD)
 STSVERSION = $(shell git describe --abbrev=0 --tags)
 BUILTTIME = $(shell date -u "+%Y-%m-%d %I:%M:%S%p")
 
-RCLONEVERSION = v1.54.0
+RCLONEVERSION = v1.55.0
 RCLONEURL = https://github.com/DODAS-TS/rclone/releases/download/
 
 UNAME_S = $(shell uname -s)
