@@ -324,6 +324,10 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	commandFlags := []string{
 		// TODO: fix -> increase the volume of log for no purpose
 		// "--debug-fuse",
+		"--attr-timeout",
+		"30s",
+		"--vfs-write-wait",
+		"2s",
 		"--vfs-cache-mode",
 		"writes",
 		// TODO: fix -> not working
@@ -533,13 +537,6 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			log.Err(err).Str("logPath", logPath).Msg("failed to open log file")
 		}
 
-		defer readFile.Close()
-
-		fileInfo, err := readFile.Stat()
-		if err != nil {
-			log.Err(err).Str("logPath", logPath).Msg("failed to get stats of the log file")
-		}
-
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
 
@@ -571,15 +568,7 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			lineNum++
 		}
 
-		if fileInfo.Size() >= oneMB*logMaxSizeMB {
-			go RcloneLogRotate(logPath)
-
-			latestErrors = append(latestErrors, RcloneLogErrorMsg{
-				LineNumber: 0,
-				Str:        "LOGROTATE",
-				LookupFile: "",
-			})
-		}
+		readFile.Close()
 
 		for _, foundErr := range latestErrors {
 			outErrors <- foundErr
