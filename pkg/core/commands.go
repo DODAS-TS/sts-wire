@@ -173,7 +173,10 @@ var (
 			noPWD = noPWD || viper.GetBool("noPassword")
 			noModtime = noModtime || viper.GetBool("noModtime")
 			readOnly = readOnly || viper.GetBool("readOnly")
-			tryRemount = tryRemount || viper.GetBool("tryRemount")
+
+			if confTryRemount := viper.Get("tryRemount"); confTryRemount != nil && confTryRemount.(bool) == false {
+				tryRemount = false
+			}
 
 			log.Debug().Str("iamServer", iamServer).Msg("command")
 			log.Debug().Str("istance", instance).Msg("command")
