@@ -5,6 +5,7 @@ package core
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sys/unix"
