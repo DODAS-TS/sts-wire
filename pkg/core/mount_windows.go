@@ -1,6 +1,10 @@
 // +build windows
 package core
 
+import (
+	"github.com/rs/zerolog/log"
+)
+
 const (
 	rcloneExeString = "rclone.exe"
 )
@@ -11,7 +15,7 @@ func checkMountpoint(path string) (bool, error) {
 	return true, nil
 }
 
-func unmount() error {
+func unmount(path string) error {
 	log.Warn().Msg("unmount not yet implemented on windows...")
 
 	return nil
