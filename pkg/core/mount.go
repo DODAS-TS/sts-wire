@@ -325,9 +325,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		// TODO: fix -> increase the volume of log for no purpose
 		// "--debug-fuse",
 		"--attr-timeout",
+		"1m",
+		"--vfs-write-back",
 		"30s",
 		"--vfs-write-wait",
-		"2s",
+		"10s",
 		"--vfs-cache-mode",
 		"writes",
 		// TODO: fix -> not working
