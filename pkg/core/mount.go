@@ -301,21 +301,21 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		 * is needed by an operation.
 		 */
 		"--use-server-modtime",
-		// /*
-		//  * https://rclone.org/docs/#no-update-modtime
-		//  *
-		//  * When using this flag, rclone won't update modification times of
-		//  * remote files if they are incorrect as it would normally.
-		//  */
-		// "--no-update-modtime",
 		/*
-		 * https://rclone.org/docs/#c-checksum
+		 * https://rclone.org/docs/#no-update-modtime
 		 *
-		 * Normally rclone will look at modification time and size of files
-		 * to see if they are equal. If you set this flag then rclone
-		 * will check the file hash and size to determine if files are equal.
+		 * When using this flag, rclone won't update modification times of
+		 * remote files if they are incorrect as it would normally.
 		 */
-		"--checksum",
+		"--no-update-modtime",
+		// /*
+		//  * https://rclone.org/docs/#c-checksum
+		//  *
+		//  * Normally rclone will look at modification time and size of files
+		//  * to see if they are equal. If you set this flag then rclone
+		//  * will check the file hash and size to determine if files are equal.
+		//  */
+		// "--checksum",
 		"mount",
 		conf,
 		localPathAbs,
