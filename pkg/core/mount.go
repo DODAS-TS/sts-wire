@@ -301,13 +301,6 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		 * is needed by an operation.
 		 */
 		"--use-server-modtime",
-		/*
-		 * https://rclone.org/docs/#no-update-modtime
-		 *
-		 * When using this flag, rclone won't update modification times of
-		 * remote files if they are incorrect as it would normally.
-		 */
-		"--no-update-modtime",
 		// /*
 		//  * https://rclone.org/docs/#c-checksum
 		//  *
@@ -331,7 +324,7 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		"--vfs-write-wait",
 		"2s",
 		"--vfs-cache-mode",
-		"writes",
+		"full",
 		// TODO: fix -> not working
 		// "--filter",
 		// "- *-checkpoint.ipynb",
