@@ -100,6 +100,7 @@ Flags:
   -h, --help                      help for sts-wire
       --insecureConn              check the http connection certificate
       --log string                where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
+      --noLocalCache              force the data read from remote without store a local cache
       --noModtime                 mount with noModtime option
       --noPassword                to not encrypt the data with a password
       --rcloneMountFlags string   overwrite the rclone mount flags
@@ -138,6 +139,9 @@ noPassword: false
 refreshTokenRenew: 10
 insecureConn: false
 ```
+
+> **Note**: if your remote storage is bigger than the space you have available in your local computer, it is suggested to use the option `--noLocalCache`.
+
 ### :rocket: Launch the program
 
 In the following example you can see how the program is launched:
