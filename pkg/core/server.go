@@ -87,6 +87,7 @@ type Server struct {
 	rcloneLogPath     string
 	rcloneLogLine     int
 	NoModtime         bool
+	NoLocalCache      bool
 	ReadOnly          bool
 	MountNewFlags     string
 	TryRemount        bool
@@ -440,15 +441,7 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 		panic(err)
 	}
 
-	rcloneCmd, errChan, logPath, errMount := MountVolume(
-		s.Instance,
-		s.RemotePath,
-		s.LocalPath,
-		s.Client.ConfDir,
-		s.ReadOnly,
-		s.NoModtime,
-		s.MountNewFlags,
-	)
+	rcloneCmd, errChan, logPath, errMount := MountVolume(s)
 	if errMount != nil {
 		panic(errMount)
 	}
@@ -753,15 +746,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				if err != nil {
 					color.Red.Println("==> Error, cannot unmount local folder...")
 				} else {
-					rcloneCmd, errChan, logPath, errMount := MountVolume(
-						s.Instance,
-						s.RemotePath,
-						s.LocalPath,
-						s.Client.ConfDir,
-						s.ReadOnly,
-						s.NoModtime,
-						s.MountNewFlags,
-					)
+					rcloneCmd, errChan, logPath, errMount := MountVolume(s)
 
 					if errMount != nil {
 						panic(errMount)

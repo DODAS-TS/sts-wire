@@ -225,7 +225,12 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, noModtime bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,gocyclo
+	instance := serverInstance.Instance
+	remotePath := serverInstance.RemotePath
+	localPath := serverInstance.LocalPath
+	configPath := serverInstance.Client.ConfDir
+
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
 	if errPrepare := PrepareRclone(); errPrepare != nil {
@@ -319,19 +324,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		// "--debug-fuse",
 		// "--attr-timeout",
 		// "2m",
-		"--buffer-size",
-		"2M",
 		"--write-back-cache",
-		"--vfs-read-ahead",
-		"8M",
 		"--vfs-write-back",
 		"10s",
-		"--vfs-read-wait",
-		"55ms",
 		"--vfs-write-wait",
 		"2s",
-		"--vfs-cache-mode",
-		"full",
 		// TODO: fix -> not working
 		// "--filter",
 		// "- *-checkpoint.ipynb",
@@ -339,16 +336,25 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		// "- .ipynb_checkpoints",
 	}
 
-	if noModtime {
+	if serverInstance.NoLocalCache {
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "writes")
+	} else {
+		commandFlags = append(commandFlags, "--vfs-read-wait", "55ms")
+		commandFlags = append(commandFlags, "--vfs-read-ahead", "8M")
+		commandFlags = append(commandFlags, "--buffer-size", "2M")
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "full")
+	}
+
+	if serverInstance.NoModtime {
 		commandFlags = append(commandFlags, "--no-modtime")
 	}
 
-	if readOnly {
+	if serverInstance.ReadOnly {
 		commandFlags = append(commandFlags, "--read-only")
 	}
 
-	if newFlags != "" {
-		commandArgs = strings.Split(newFlags, " ")
+	if serverInstance.MountNewFlags != "" {
+		commandArgs = strings.Split(serverInstance.MountNewFlags, " ")
 	} else {
 		commandArgs = append(commandArgs, commandFlags...)
 	}
