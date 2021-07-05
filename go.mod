@@ -16,6 +16,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
 	golang.org/x/oauth2 v0.0.0-20210216194517-16ff1888fd2e
-	golang.org/x/sys v0.0.0-20210217105451-b926d437f341
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/tools/gopls v0.7.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
