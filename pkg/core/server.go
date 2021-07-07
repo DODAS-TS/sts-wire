@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 	"time"
@@ -548,6 +549,18 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 
 	log.Debug().Str("newAccessToken", bodyJSON.AccessToken).Msg("Refresh token")
 
+	if bodyJSON.AccessToken == "" {
+		ref := reflect.TypeOf(&bodyJSON)
+		_, inStruct := ref.Elem().FieldByName("Error")
+
+		if inStruct {
+			log.Error().Str("error", bodyJSON.Error).Str("error_description",
+				bodyJSON.ErrorDescription).Msg("invalid access token")
+		}
+
+		panic("invalid access token")
+	}
+
 	curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		log.Err(err).Msg("server - token file")
@@ -707,7 +720,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 		select {
 		case <-signalChan:
 			color.Red.Println("\r==> Wait a moment, service is exiting...")
-			log.Debug().Msg("UpdateTokenLoop interrupt signa!")
+			log.Debug().Msg("UpdateTokenLoop interrupt signal!")
 
 			loop = false
 
