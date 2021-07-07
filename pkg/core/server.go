@@ -106,7 +106,16 @@ func (s *Server) noRefreshToken() IAMCreds {
 	//fmt.Println(s.CurClientResponse.ClientID)
 	//fmt.Println(s.CurClientResponse.ClientSecret)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			log.Error().Msg("Deadline for refresh token reached...")
+			panic(ctx.Err().Error())
+		}
+	}()
 
 	config := oauth2.Config{
 		ClientID:     s.CurClientResponse.ClientID,
@@ -301,7 +310,6 @@ func (s *Server) noRefreshToken() IAMCreds {
 
 		idleConnsClosed <- res // propagate result after server is closed
 	}
-
 	go closeConn()
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
