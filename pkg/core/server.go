@@ -112,8 +112,12 @@ func (s *Server) noRefreshToken() IAMCreds {
 	go func() {
 		select {
 		case <-ctx.Done():
-			log.Error().Msg("Deadline for refresh token reached...")
-			panic(ctx.Err().Error())
+			if err := ctx.Err().Error(); err != "context canceled" {
+				log.Error().Msg("Deadline for refresh token reached...")
+				panic(err)
+			} else {
+				log.Debug().Msg("Refresh token context cancelled")
+			}
 		}
 	}()
 
