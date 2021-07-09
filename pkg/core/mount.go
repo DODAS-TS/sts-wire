@@ -324,7 +324,9 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		// "--debug-fuse",
 		// "--attr-timeout",
 		// "2m",
-		"--write-back-cache",
+		// CANNOT BE USED:
+		// - https://unix.stackexchange.com/questions/388722/git-repository-on-sshfs-unable-to-append-to-git-logs-head-invalid-argument
+		//"--write-back-cache",
 		"--vfs-write-back",
 		"10s",
 		"--vfs-write-wait",
