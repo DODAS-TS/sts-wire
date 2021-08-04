@@ -368,6 +368,16 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 
 	rcloneCmd := exec.Command(rcloneFile, commandArgs...)
 
+	cmdStdout, err := rcloneCmd.StderrPipe()
+	if err != nil {
+		log.Error().Err(err).Msg("stdout pipe")
+	}
+
+	cmdStderr, err := rcloneCmd.StdoutPipe()
+	if err != nil {
+		log.Error().Err(err).Msg("stderr pipe")
+	}
+
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
 	if errStart := rcloneCmd.Start(); errStart != nil {
@@ -430,6 +440,24 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 			default:
 				log.Error().Int("exitCode",
 					exitCode).Msg("error on exit")
+			}
+
+			var buffer bytes.Buffer
+
+			_, err := buffer.ReadFrom(cmdStdout)
+			if err != nil {
+				log.Error().Err(err).Msg("read stdout")
+			} else {
+				log.Error().Str("stdout", buffer.String()).Msg("rclone")
+			}
+
+			buffer.Reset()
+
+			_, err = buffer.ReadFrom(cmdStderr)
+			if err != nil {
+				log.Error().Err(err).Msg("read stderr")
+			} else {
+				log.Error().Str("stderr", buffer.String()).Msg("rclone")
 			}
 		}
 
