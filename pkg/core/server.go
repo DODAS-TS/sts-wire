@@ -88,7 +88,7 @@ type Server struct {
 	rcloneLogPath     string
 	rcloneLogLine     int
 	NoModtime         bool
-	NoLocalCache      bool
+	LocalCache        string
 	ReadOnly          bool
 	MountNewFlags     string
 	TryRemount        bool

@@ -64,7 +64,7 @@ var (
 	noPWD             bool   //nolint:gochecknoglobals
 	debug             bool   //nolint:gochecknoglobals
 	noModtime         bool   //nolint:gochecknoglobals
-	noLocalCache      bool   //nolint:gochecknoglobals
+	localCache        string //nolint:gochecknoglobals
 	readOnly          bool   //nolint:gochecknoglobals
 	tryRemount        bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
@@ -173,7 +173,9 @@ var (
 
 			noPWD = noPWD || viper.GetBool("noPassword")
 			noModtime = noModtime || viper.GetBool("noModtime")
-			noLocalCache = noLocalCache || viper.GetBool("noLocalCache")
+			if localCache == "" {
+				localCache = viper.GetString("localCache")
+			}
 			readOnly = readOnly || viper.GetBool("readOnly")
 
 			if confTryRemount := viper.Get("tryRemount"); confTryRemount != nil && confTryRemount.(bool) == false {
@@ -187,9 +189,17 @@ var (
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Bool("noPassword", noPWD).Msg("command")
 			log.Debug().Bool("noModtime", noModtime).Msg("command")
-			log.Debug().Bool("noLocalCache", noLocalCache).Msg("command")
+			log.Debug().Str("localCache", localCache).Msg("command")
 			log.Debug().Bool("readOnly", readOnly).Msg("command")
 			log.Debug().Bool("tryRemount", tryRemount).Msg("command")
+
+			switch localCache {
+			// valid: off,minimal,writes,full
+			case "off", "OFF", "minimal", "MINIMAL", "writes", "WRITES", "full", "FULL":
+				log.Debug().Str("localCache", localCache).Msg("command - valid parameter")
+			default:
+				panic(fmt.Errorf("not a valid localCache parameter %s", localCache))
+			}
 
 			if cfgFile != "" {
 				if validIAMServer, err := validator.WebURL(iamServer); !validIAMServer {
@@ -420,7 +430,7 @@ var (
 				RefreshTokenRenew: refreshTokenRenew,
 				ReadOnly:          readOnly,
 				NoModtime:         noModtime,
-				NoLocalCache:      noLocalCache,
+				LocalCache:        localCache,
 				MountNewFlags:     rcloneMountFlags,
 				TryRemount:        tryRemount,
 			}
@@ -586,7 +596,7 @@ func init() { //nolint: gochecknoinits
 		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
-	rootCmd.PersistentFlags().BoolVar(&noLocalCache, "noLocalCache", false, "force the data read from remote without store a local cache")
+	rootCmd.PersistentFlags().StringVar(&localCache, "localCache", "off", "choose local cache type [off,minimal,writes,full]")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
 	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true,
 		"try to remount if there are any rclone errors (up to 10 times)")

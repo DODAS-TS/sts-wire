@@ -338,9 +338,14 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		// "- .ipynb_checkpoints",
 	}
 
-	if serverInstance.NoLocalCache {
+	switch strings.ToLower(serverInstance.LocalCache) {
+	case "off":
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "off")
+	case "minimal":
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "minimal")
+	case "writes":
 		commandFlags = append(commandFlags, "--vfs-cache-mode", "writes")
-	} else {
+	case "full":
 		commandFlags = append(commandFlags, "--vfs-read-wait", "55ms")
 		commandFlags = append(commandFlags, "--vfs-read-ahead", "8M")
 		commandFlags = append(commandFlags, "--buffer-size", "2M")
