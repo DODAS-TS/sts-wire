@@ -327,10 +327,6 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		// CANNOT BE USED:
 		// - https://unix.stackexchange.com/questions/388722/git-repository-on-sshfs-unable-to-append-to-git-logs-head-invalid-argument
 		//"--write-back-cache",
-		"--vfs-write-back",
-		"10s",
-		"--vfs-write-wait",
-		"2s",
 		// TODO: fix -> not working
 		// "--filter",
 		// "- *-checkpoint.ipynb",
@@ -338,7 +334,13 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		// "- .ipynb_checkpoints",
 	}
 
-	switch strings.ToLower(serverInstance.LocalCache) {
+	curCacheType := strings.ToLower(serverInstance.LocalCache)
+	if curCacheType != "off" {
+		commandFlags = append(commandFlags, "--vfs-write-back", "10s")
+		commandFlags = append(commandFlags, "--vfs-write-wait", "2s")
+	}
+
+	switch curCacheType {
 	case "off":
 		commandFlags = append(commandFlags, "--vfs-cache-mode", "off")
 	case "minimal":
