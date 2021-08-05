@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 )
 
 const (
-	deltaCheckTokenRefresh  = time.Duration(5 * time.Second)
+	deltaCheckTokenRefresh  = time.Duration(30 * time.Second)
 	checkRuntimeRcloneSleep = 60 * time.Second
 	maxRemountAttempts      = 10
 )
@@ -93,7 +94,6 @@ type Server struct {
 	MountNewFlags     string
 	TryRemount        bool
 	numRemount        int
-	refreshing        bool
 }
 
 func (s *Server) noRefreshToken() IAMCreds {
@@ -596,91 +596,92 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 
 func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:funlen,cyclop,lll,gocognit
 	loop := true
+	wg := sync.WaitGroup{}
 	signalChan := make(chan os.Signal, 1)
 
 	checkRuntimeRcloneErrors := func() {
 		time.Sleep(checkRuntimeRcloneSleep)
 
 		for loop {
-			if !s.refreshing {
+			wg.Wait()
 
-				log.Debug().Msg("checkRuntimeRcloneErrors")
+			log.Debug().Msg("checkRuntimeRcloneErrors")
 
-				// -------------------------- LOG ROTATE ---------------------------
-				readFile, err := os.Open(s.rcloneLogPath)
+			// -------------------------- LOG ROTATE ---------------------------
+			readFile, err := os.Open(s.rcloneLogPath)
+			if err != nil {
+				log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to open log file")
+			}
+
+			fileInfo, err := readFile.Stat()
+			if err != nil {
+				log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to get stats of the log file")
+			}
+
+			readFile.Close()
+
+			if fileInfo.Size() >= oneMB*logMaxSizeMB {
+				go RcloneLogRotate(s.rcloneLogPath)
+			}
+			// ------------------------ END LOG ROTATE -------------------------
+
+			foundErrors := false
+
+			// ------------------------ CHECK READ DIR -------------------------
+			localPathAbs, errLocalPath := filepath.Abs(s.LocalPath)
+			if errLocalPath != nil {
+				log.Err(errLocalPath).Msg("server")
+			}
+
+			if _, err := os.Stat(localPathAbs); os.IsNotExist(err) {
+				// not exist
+				log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - local mount point not exists")
+
+				foundErrors = true
+			}
+
+			if _, err := os.ReadDir(localPathAbs); err != nil {
+				log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - cannot read local mount point")
+
+				foundErrors = true
+			}
+			// ------------------------- END READ DIR --------------------------
+
+			// ----------------------- CHECK DUMMY FILE ------------------------
+			if !s.ReadOnly {
+				dummyFile, err := os.CreateTemp(localPathAbs, ".dummy_*")
+
 				if err != nil {
-					log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to open log file")
-				}
-
-				fileInfo, err := readFile.Stat()
-				if err != nil {
-					log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to get stats of the log file")
-				}
-
-				readFile.Close()
-
-				if fileInfo.Size() >= oneMB*logMaxSizeMB {
-					go RcloneLogRotate(s.rcloneLogPath)
-				}
-				// ------------------------ END LOG ROTATE -------------------------
-
-				foundErrors := false
-
-				// ------------------------ CHECK READ DIR -------------------------
-				localPathAbs, errLocalPath := filepath.Abs(s.LocalPath)
-				if errLocalPath != nil {
-					log.Err(errLocalPath).Msg("server")
-				}
-
-				if _, err := os.Stat(localPathAbs); os.IsNotExist(err) {
-					// not exist
-					log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - local mount point not exists")
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot create a dummy file in local mount point")
 
 					foundErrors = true
 				}
 
-				if _, err := os.ReadDir(localPathAbs); err != nil {
-					log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - cannot read local mount point")
+				_, err = dummyFile.WriteString("dummy")
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot write a dummy file in local mount point")
 
 					foundErrors = true
 				}
-				// ------------------------- END READ DIR --------------------------
 
-				// ----------------------- CHECK DUMMY FILE ------------------------
-				if !s.ReadOnly {
-					dummyFile, err := os.CreateTemp(localPathAbs, ".dummy_*")
+				err = dummyFile.Close()
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot close a dummy file in local mount point")
 
-					if err != nil {
-						log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
-							"checkRuntimeRcloneErrors - cannot create a dummy file in local mount point")
-
-						foundErrors = true
-					}
-
-					_, err = dummyFile.WriteString("dummy")
-					if err != nil {
-						log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
-							"checkRuntimeRcloneErrors - cannot write a dummy file in local mount point")
-
-						foundErrors = true
-					}
-
-					err = dummyFile.Close()
-					if err != nil {
-						log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
-							"checkRuntimeRcloneErrors - cannot close a dummy file in local mount point")
-
-						foundErrors = true
-					}
-
-					err = os.Remove(dummyFile.Name())
-					if err != nil {
-						log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
-							"checkRuntimeRcloneErrors - cannot remove a dummy file in local mount point")
-
-						foundErrors = true
-					}
+					foundErrors = true
 				}
+
+				err = os.Remove(dummyFile.Name())
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot remove a dummy file in local mount point")
+
+					foundErrors = true
+				}
+
 				// ------------------------ END DUMMY FILE -------------------------
 
 				// ---------------------- CHECK MOUNT POINT ------------------------
@@ -712,8 +713,6 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 				}
 
 				time.Sleep(checkRuntimeRcloneSleep)
-			} else {
-				log.Debug().Msg("checkRuntimeRcloneErrors - wait for token refresh")
 			}
 		}
 
@@ -732,9 +731,9 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 		if time.Since(startT)+deltaCheckTokenRefresh >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
 			startT = time.Now()
 
-			s.refreshing = true
+			wg.Add(1)
 			s.RefreshToken(credsIAM, endpoint)
-			s.refreshing = false
+			wg.Done()
 		}
 
 		select {

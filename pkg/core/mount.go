@@ -320,6 +320,8 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 	}
 
 	commandFlags := []string{
+		"--cache-dir",
+		"./.rcloneMountCache",
 		// TODO: fix -> increase the volume of log for no purpose
 		// "--debug-fuse",
 		// "--attr-timeout",
@@ -336,6 +338,11 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 
 	curCacheType := strings.ToLower(serverInstance.LocalCache)
 	if curCacheType != "off" {
+		err := os.RemoveAll("./.rcloneMountCache")
+		if err != nil && !os.IsNotExist(err) {
+			panic(err)
+		}
+
 		commandFlags = append(commandFlags, "--vfs-write-back", "10s")
 		commandFlags = append(commandFlags, "--vfs-write-wait", "2s")
 	}
