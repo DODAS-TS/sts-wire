@@ -24,7 +24,9 @@ const ClientTemplate = `{
 const RCloneTemplate = `
 [{{ .Instance }}]
 type = s3
-provider = Minio
+provider = INFN Cloud
+oidc_agent = false
+account =
 env_auth = false
 access_key_id =
 secret_access_key =
