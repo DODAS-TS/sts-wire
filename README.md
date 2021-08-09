@@ -99,15 +99,14 @@ Flags:
       --debug                     start the program in debug mode
   -h, --help                      help for sts-wire
       --insecureConn              check the http connection certificate
-      --log string                where the log has to write, a file path or stderr (default "your/app/config/dir/log/sts-wire.log")
-      --noLocalCache              force the data read from remote without store a local cache
+      --localCache string         choose local cache type [off,minimal,writes,full] (default "off")
+      --log string                where the log has to write, a file path or stderr (default "default "your/app/config/dir/log/sts-wire.log")
       --noModtime                 mount with noModtime option
       --noPassword                to not encrypt the data with a password
       --rcloneMountFlags string   overwrite the rclone mount flags
       --readOnly                  mount with read-only option
       --refreshTokenRenew int     time span to renew the refresh token in minutes (default 15)
-      --tryRemount                try to remount if there are any rclone errors (up to 10 times)
-
+      --tryRemount                try to remount if there are any rclone errors (up to 10 times) (default true)
 
 Use "sts-wire [command] --help" for more information about a command.
 ```
@@ -140,7 +139,7 @@ refreshTokenRenew: 10
 insecureConn: false
 ```
 
-> **Note**: if your remote storage is bigger than the space you have available in your local computer, it is suggested to use the option `--noLocalCache`.
+> **Note**: depending on your needs, it is possibile to configure a local cache used by the program to mitigate the connection with the remote storage. As default, the `--localCache` parameter is off. You can activate it depending on the workload you have on the network and the different tasks executed in the cloud storage.
 
 ### :rocket: Launch the program
 
@@ -176,6 +175,10 @@ IAM_CLIENT_ID=iam_client_id \
 REFRESH_TOKEN=refresh_token \
 ./sts-wire ${IAM_SERVER} myMinio https://myserver.com:9000 / ./mountedVolume --log .example.log  --noPassword
 ```
+
+### :twisted_rightwards_arrows: Alternative
+
+It is possible to use directly the patched `rclone` program with the support of an identity manager named `oidc-agent`. You can find more information on the official [patched rclone repository](https://github.com/DODAS-TS/rclone).
 
 ##  :two_men_holding_hands: Contributing :couple::two_women_holding_hands:
 
