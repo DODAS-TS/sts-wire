@@ -89,6 +89,7 @@ type Server struct {
 	rcloneLogPath     string
 	rcloneLogLine     int
 	NoModtime         bool
+	NoDummyFileCheck  bool
 	LocalCache        string
 	ReadOnly          bool
 	MountNewFlags     string
@@ -648,7 +649,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 			// ------------------------- END READ DIR --------------------------
 
 			// ----------------------- CHECK DUMMY FILE ------------------------
-			if !s.ReadOnly {
+			if !s.ReadOnly && !s.NoDummyFileCheck { // nolint:nestif
 				dummyFile, err := os.CreateTemp(localPathAbs, ".dummy_*")
 
 				if err != nil {

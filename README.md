@@ -101,6 +101,7 @@ Flags:
       --insecureConn              check the http connection certificate
       --localCache string         choose local cache type [off,minimal,writes,full] (default "off")
       --log string                where the log has to write, a file path or stderr (default "default "your/app/config/dir/log/sts-wire.log")
+      --noDummyFileCheck          disable dummy file check on mountpoint
       --noModtime                 mount with noModtime option
       --noPassword                to not encrypt the data with a password
       --rcloneMountFlags string   overwrite the rclone mount flags

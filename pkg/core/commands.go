@@ -64,6 +64,7 @@ var (
 	noPWD             bool   //nolint:gochecknoglobals
 	debug             bool   //nolint:gochecknoglobals
 	noModtime         bool   //nolint:gochecknoglobals
+	noDummyFileCheck  bool   //nolint:gochecknoglobals
 	localCache        string //nolint:gochecknoglobals
 	readOnly          bool   //nolint:gochecknoglobals
 	tryRemount        bool   //nolint:gochecknoglobals
@@ -173,6 +174,7 @@ var (
 
 			noPWD = noPWD || viper.GetBool("noPassword")
 			noModtime = noModtime || viper.GetBool("noModtime")
+			noDummyFileCheck = noDummyFileCheck || viper.GetBool("noDummyFileCheck")
 			if localCache == "" {
 				localCache = viper.GetString("localCache")
 			}
@@ -189,6 +191,7 @@ var (
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Bool("noPassword", noPWD).Msg("command")
 			log.Debug().Bool("noModtime", noModtime).Msg("command")
+			log.Debug().Bool("noDummyFileCheck", noDummyFileCheck).Msg("command")
 			log.Debug().Str("localCache", localCache).Msg("command")
 			log.Debug().Bool("readOnly", readOnly).Msg("command")
 			log.Debug().Bool("tryRemount", tryRemount).Msg("command")
@@ -430,6 +433,7 @@ var (
 				RefreshTokenRenew: refreshTokenRenew,
 				ReadOnly:          readOnly,
 				NoModtime:         noModtime,
+				NoDummyFileCheck:  noDummyFileCheck,
 				LocalCache:        localCache,
 				MountNewFlags:     rcloneMountFlags,
 				TryRemount:        tryRemount,
@@ -596,6 +600,7 @@ func init() { //nolint: gochecknoinits
 		"time span to renew the refresh token in minutes")
 	rootCmd.PersistentFlags().BoolVar(&noPWD, "noPassword", false, "to not encrypt the data with a password")
 	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
+	rootCmd.PersistentFlags().BoolVar(&noDummyFileCheck, "noDummyFileCheck", false, "disable dummy file check on mountpoint")
 	rootCmd.PersistentFlags().StringVar(&localCache, "localCache", "off", "choose local cache type [off,minimal,writes,full]")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
 	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true,
