@@ -712,9 +712,9 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 						panic(errCmdInterrupt)
 					}
 				}
-
-				time.Sleep(checkRuntimeRcloneSleep)
 			}
+
+			time.Sleep(checkRuntimeRcloneSleep)
 		}
 
 		log.Debug().Msg("checkRuntimeRcloneErrors - exit")
