@@ -225,11 +225,15 @@ func PrepareRclone() error { // nolint: funlen,gocognit,cyclop
 	return nil
 }
 
-func MountVolume(instance string, remotePath string, localPath string, configPath string, readOnly bool, noModtime bool, newFlags string) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,lll,cyclop
+func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) { // nolint: funlen,gocognit,gocyclo
+	instance := serverInstance.Instance
+	remotePath := serverInstance.RemotePath
+	localPath := serverInstance.LocalPath
+	configPath := serverInstance.Client.ConfDir
+
 	log.Debug().Str("action", "prepare rclone").Msg("rclone - mount")
 
-	errPrepare := PrepareRclone()
-	if errPrepare != nil {
+	if errPrepare := PrepareRclone(); errPrepare != nil {
 		log.Err(errPrepare).Msg("rclone - mount")
 
 		return nil, nil, "", errPrepare
@@ -242,11 +246,11 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", errExePath
 	}
 
-	log.Debug().Str("action", "make local dir").Msg("rclone - mount")
-
 	if runtime.GOOS != "windows" {
 		_, errLocalPath := os.Stat(localPath)
 		if os.IsNotExist(errLocalPath) {
+			log.Debug().Str("action", "make local dir").Msg("rclone - mount")
+
 			errMkdir := os.MkdirAll(localPath, os.ModePerm)
 			if errMkdir != nil {
 				panic(errMkdir)
@@ -279,64 +283,114 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 		return nil, nil, "", fmt.Errorf("local path abs: %w", errLocalPath)
 	}
 
-	commandArgs := strings.Builder{}
-
-	commandArgs.WriteString("--config")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(configPathAbs)
-	commandArgs.WriteRune(' ')
-	// commandArgs.WriteString(// "--daemon")
-	// commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--log-file")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(logPath)
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--log-level")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("DEBUG")
-	// commandArgs.WriteRune(' ')
-	// commandArgs.WriteString("--use-json-log")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--no-check-certificate")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("--fast-list")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString("mount")
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(conf)
-	commandArgs.WriteRune(' ')
-	commandArgs.WriteString(localPathAbs)
-
-	commandFlags := strings.Builder{}
-	commandFlags.WriteString("--debug-fuse")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("--vfs-cache-mode")
-	commandFlags.WriteRune(' ')
-	commandFlags.WriteString("writes")
-
-	if noModtime {
-		commandFlags.WriteRune(' ')
-		commandFlags.WriteString("--no-modtime")
+	commandArgs := []string{
+		"--config",
+		configPathAbs,
+		// "--daemon",
+		"--log-file",
+		logPath,
+		"--log-level",
+		"DEBUG",
+		"--use-json-log",
+		"--no-check-certificate",
+		"--cache-db-purge",
+		/*
+		 * https://rclone.org/docs/#use-server-modtime
+		 * https://rclone.org/commands/rclone_mount/#vfs-performance
+		 *
+		 * Some object-store backends (e.g, Swift, S3) do not preserve
+		 * file modification times (modtime). On these backends,
+		 * rclone stores the original modtime as additional
+		 * metadata on the object. By default it will make an API
+		 * call to retrieve the metadata when the modtime
+		 * is needed by an operation.
+		 */
+		"--use-server-modtime",
+		// /*
+		//  * https://rclone.org/docs/#c-checksum
+		//  *
+		//  * Normally rclone will look at modification time and size of files
+		//  * to see if they are equal. If you set this flag then rclone
+		//  * will check the file hash and size to determine if files are equal.
+		//  */
+		// "--checksum",
+		"mount",
+		conf,
+		localPathAbs,
 	}
 
-	if readOnly {
-		commandFlags.WriteRune(' ')
-		commandFlags.WriteString("--read-only")
+	commandFlags := []string{
+		"--cache-dir",
+		"./.rcloneMountCache",
+		// TODO: fix -> increase the volume of log for no purpose
+		// "--debug-fuse",
+		// "--attr-timeout",
+		// "2m",
+		// CANNOT BE USED:
+		// - https://unix.stackexchange.com/questions/388722/git-repository-on-sshfs-unable-to-append-to-git-logs-head-invalid-argument
+		//"--write-back-cache",
+		// TODO: fix -> not working
+		// "--filter",
+		// "- *-checkpoint.ipynb",
+		// "--filter",
+		// "- .ipynb_checkpoints",
 	}
 
-	commandArgs.WriteRune(' ')
-	if newFlags != "" {
-		commandArgs.WriteString(newFlags)
+	curCacheType := strings.ToLower(serverInstance.LocalCache)
+	if curCacheType != "off" {
+		err := os.RemoveAll("./.rcloneMountCache")
+		if err != nil && !os.IsNotExist(err) {
+			panic(err)
+		}
+
+		commandFlags = append(commandFlags, "--vfs-write-back", "10s")
+		commandFlags = append(commandFlags, "--vfs-write-wait", "2s")
+	}
+
+	switch curCacheType {
+	case "off":
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "off")
+	case "minimal":
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "minimal")
+	case "writes":
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "writes")
+	case "full":
+		commandFlags = append(commandFlags, "--vfs-read-wait", "55ms")
+		commandFlags = append(commandFlags, "--vfs-read-ahead", "8M")
+		commandFlags = append(commandFlags, "--buffer-size", "2M")
+		commandFlags = append(commandFlags, "--vfs-cache-mode", "full")
+	}
+
+	if serverInstance.NoModtime {
+		commandFlags = append(commandFlags, "--no-modtime")
+	}
+
+	if serverInstance.ReadOnly {
+		commandFlags = append(commandFlags, "--read-only")
+	}
+
+	if serverInstance.MountNewFlags != "" {
+		commandArgs = strings.Split(serverInstance.MountNewFlags, " ")
 	} else {
-		commandArgs.WriteString(commandFlags.String())
+		commandArgs = append(commandArgs, commandFlags...)
 	}
 
 	log.Debug().Str("command",
-		rcloneFile).Str("args",
-		commandArgs.String(),
+		rcloneFile).Interface("args",
+		commandArgs,
 	).Msg("rclone - mount")
 
-	rcloneCmd := exec.Command(rcloneFile, strings.Split(commandArgs.String(), " ")...)
+	rcloneCmd := exec.Command(rcloneFile, commandArgs...)
+
+	cmdStdout, err := rcloneCmd.StderrPipe()
+	if err != nil {
+		log.Error().Err(err).Msg("stdout pipe")
+	}
+
+	cmdStderr, err := rcloneCmd.StdoutPipe()
+	if err != nil {
+		log.Error().Err(err).Msg("stderr pipe")
+	}
 
 	log.Debug().Str("action", "start rclone").Msg("rclone - mount")
 
@@ -347,6 +401,8 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 	cmdErr := make(chan error)
 
 	cmdErrorCheck := func() {
+		defer close(cmdErr)
+
 		procState, errWait := rcloneCmd.Process.Wait()
 
 		// Wait for main server to close channel if User pressed Ctrl+C
@@ -369,32 +425,53 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 				log.Debug().Int("exitCode",
 					exitCode).Msg("success")
 			case 1:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Syntax or usage error")
 			case 2:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Error not otherwise categorised")
 			case 3:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Directory not found")
 			case 4:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("File not found")
 			case 5:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Temporary error (one that more retries might fix) (Retry errors)")
 			case 6:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Less serious errors (like 461 errors from dropbox) (NoRetry errors)")
 			case 7:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Fatal error (one that more retries won't fix, like account suspended) (Fatal errors)")
 			case 8:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Transfer exceeded - limit set by --max-transfer reached")
 			case 9:
-				log.Debug().Int("exitCode",
+				log.Error().Int("exitCode",
 					exitCode).Msg("Operation successful, but no files transferred")
+			default:
+				log.Error().Int("exitCode",
+					exitCode).Msg("error on exit")
+			}
+
+			var buffer bytes.Buffer
+
+			_, err := buffer.ReadFrom(cmdStdout)
+			if err != nil {
+				log.Error().Err(err).Msg("read stdout")
+			} else {
+				log.Error().Str("stdout", buffer.String()).Msg("rclone")
+			}
+
+			buffer.Reset()
+
+			_, err = buffer.ReadFrom(cmdStderr)
+			if err != nil {
+				log.Error().Err(err).Msg("read stderr")
+			} else {
+				log.Error().Str("stderr", buffer.String()).Msg("rclone")
 			}
 		}
 
@@ -403,8 +480,6 @@ func MountVolume(instance string, remotePath string, localPath string, configPat
 			if errWait != nil {
 				cmdErr <- errWait
 			}
-
-			defer close(cmdErr)
 		} else {
 			if errWait == nil {
 				// rclone not exited after user pressed Ctrl+C
@@ -428,7 +503,7 @@ type RcloneLogErrorMsg struct {
 	LookupFile string
 }
 
-func RcloneLogRotate(logPath string) {
+func RcloneLogRotate(logPath string) { //nolint:funlen
 	readFile, err := os.Open(logPath)
 	if err != nil {
 		log.Err(err).Str("logPath", logPath).Msg("failed to open log file for rotation")
@@ -514,13 +589,6 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			log.Err(err).Str("logPath", logPath).Msg("failed to open log file")
 		}
 
-		defer readFile.Close()
-
-		fileInfo, err := readFile.Stat()
-		if err != nil {
-			log.Err(err).Str("logPath", logPath).Msg("failed to get stats of the log file")
-		}
-
 		fileScanner := bufio.NewScanner(readFile)
 		fileScanner.Split(bufio.ScanLines)
 
@@ -552,15 +620,7 @@ func RcloneLogErrors(logPath string, fromLine int) chan RcloneLogErrorMsg { //no
 			lineNum++
 		}
 
-		if fileInfo.Size() >= oneMB*logMaxSizeMB {
-			go RcloneLogRotate(logPath)
-
-			latestErrors = append(latestErrors, RcloneLogErrorMsg{
-				LineNumber: 0,
-				Str:        "LOGROTATE",
-				LookupFile: "",
-			})
-		}
+		readFile.Close()
 
 		for _, foundErr := range latestErrors {
 			outErrors <- foundErr

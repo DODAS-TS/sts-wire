@@ -14,7 +14,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"sync"
 	"text/template"
 	"time"
 
@@ -28,13 +30,12 @@ import (
 )
 
 const (
-	deltaCheckTokenRefresh  = time.Duration(5 * time.Second)
-	checkRuntimeRcloneSleep = 10 * time.Second
+	deltaCheckTokenRefresh  = time.Duration(30 * time.Second)
+	checkRuntimeRcloneSleep = 60 * time.Second
 	maxRemountAttempts      = 10
 )
 
 var (
-	errRcloneRuntime  = errors.New("rclone runtime error")
 	errNoClientID     = errors.New("no ClientID available")
 	errNoClientSecret = errors.New("no Client Secret available")
 	errNoRefreshToken = errors.New("no Refresh Token available")
@@ -88,6 +89,8 @@ type Server struct {
 	rcloneLogPath     string
 	rcloneLogLine     int
 	NoModtime         bool
+	NoDummyFileCheck  bool
+	LocalCache        string
 	ReadOnly          bool
 	MountNewFlags     string
 	TryRemount        bool
@@ -105,7 +108,20 @@ func (s *Server) noRefreshToken() IAMCreds {
 	//fmt.Println(s.CurClientResponse.ClientID)
 	//fmt.Println(s.CurClientResponse.ClientSecret)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+			if err := ctx.Err().Error(); err != "context canceled" {
+				log.Error().Msg("Deadline for refresh token reached...")
+				panic(err)
+			} else {
+				log.Debug().Msg("Refresh token context cancelled")
+			}
+		}
+	}()
 
 	config := oauth2.Config{
 		ClientID:     s.CurClientResponse.ClientID,
@@ -300,7 +316,6 @@ func (s *Server) noRefreshToken() IAMCreds {
 
 		idleConnsClosed <- res // propagate result after server is closed
 	}
-
 	go closeConn()
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
@@ -441,15 +456,7 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 		panic(err)
 	}
 
-	rcloneCmd, errChan, logPath, errMount := MountVolume(
-		s.Instance,
-		s.RemotePath,
-		s.LocalPath,
-		s.Client.ConfDir,
-		s.ReadOnly,
-		s.NoModtime,
-		s.MountNewFlags,
-	)
+	rcloneCmd, errChan, logPath, errMount := MountVolume(s)
 	if errMount != nil {
 		panic(errMount)
 	}
@@ -551,10 +558,22 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 		panic(err)
 	}
 
-	// TODO:
+	// TODO
 	//encrToken := core.Encrypt([]byte(bodyJSON.AccessToken, passwd)
 
 	log.Debug().Str("newAccessToken", bodyJSON.AccessToken).Msg("Refresh token")
+
+	if bodyJSON.AccessToken == "" {
+		ref := reflect.TypeOf(&bodyJSON)
+		_, inStruct := ref.Elem().FieldByName("Error")
+
+		if inStruct {
+			log.Error().Str("error", bodyJSON.Error).Str("error_description",
+				bodyJSON.ErrorDescription).Msg("invalid access token")
+		}
+
+		panic("invalid access token")
+	}
 
 	curFile, err := os.OpenFile(".token", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -578,53 +597,38 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 
 func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:funlen,cyclop,lll,gocognit
 	loop := true
+	wg := sync.WaitGroup{}
 	signalChan := make(chan os.Signal, 1)
 
 	checkRuntimeRcloneErrors := func() {
 		time.Sleep(checkRuntimeRcloneSleep)
 
 		for loop {
-			log.Debug().Int("lastLine", s.rcloneLogLine).Msg("checkRuntimeRcloneErrors")
+			wg.Wait()
+
+			log.Debug().Msg("checkRuntimeRcloneErrors")
+
+			// -------------------------- LOG ROTATE ---------------------------
+			readFile, err := os.Open(s.rcloneLogPath)
+			if err != nil {
+				log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to open log file")
+			}
+
+			fileInfo, err := readFile.Stat()
+			if err != nil {
+				log.Err(err).Str("logPath", s.rcloneLogPath).Msg("failed to get stats of the log file")
+			}
+
+			readFile.Close()
+
+			if fileInfo.Size() >= oneMB*logMaxSizeMB {
+				go RcloneLogRotate(s.rcloneLogPath)
+			}
+			// ------------------------ END LOG ROTATE -------------------------
 
 			foundErrors := false
 
-			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, s.rcloneLogLine) {
-				s.rcloneLogLine = rcloneLogError.LineNumber + 1
-
-				switch {
-				case rcloneLogError.Str == "LOGROTATE":
-					s.rcloneLogLine = rcloneLogError.LineNumber
-				case strings.Contains(rcloneLogError.Str, "corrupted on transfer:"), strings.Contains(rcloneLogError.Str, "Failed to copy:"), strings.Contains(rcloneLogError.Str, "vfs cache: failed to upload try #"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error - upload")
-				case strings.Contains(rcloneLogError.Str, "retry"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error - retry")
-				case strings.Contains(rcloneLogError.Str, "DEBUG : fuse:"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error - fuse")
-				case strings.Contains(rcloneLogError.Str, "DEBUG :"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error")
-				case strings.Contains(rcloneLogError.Str, "(Operation not supported)"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error - fuse")
-				case strings.Contains(rcloneLogError.Str, "(No such file or directory)"):
-					log.Warn().Str("lookup",
-						rcloneLogError.LookupFile).Str("log string",
-						rcloneLogError.Str).Msg("rclone runtime error - fuse")
-				default:
-					log.Debug().Err(errRcloneRuntime).Str("log string", rcloneLogError.Str).Msg("rclone runtime error")
-
-					foundErrors = true
-				}
-			}
-
+			// ------------------------ CHECK READ DIR -------------------------
 			localPathAbs, errLocalPath := filepath.Abs(s.LocalPath)
 			if errLocalPath != nil {
 				log.Err(errLocalPath).Msg("server")
@@ -632,19 +636,81 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 
 			if _, err := os.Stat(localPathAbs); os.IsNotExist(err) {
 				// not exist
-				log.Debug().Err(err).Msg("rclone runtime error - local mountpoint")
+				log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - local mount point not exists")
 
 				foundErrors = true
 			}
 
-			log.Debug().Bool("found", foundErrors).Int("lastLine", s.rcloneLogLine).Msg("checkRuntimeRcloneErrors")
+			if _, err := os.ReadDir(localPathAbs); err != nil {
+				log.Debug().Err(err).Msg("checkRuntimeRcloneErrors - cannot read local mount point")
 
-			if foundErrors {
-				log.Debug().Msg("rclone runtime error - interrupt rclone process")
+				foundErrors = true
+			}
+			// ------------------------- END READ DIR --------------------------
 
-				errCmdInterrupt := s.rcloneCmd.Process.Signal(os.Interrupt)
-				if errCmdInterrupt != nil && !strings.Contains(errCmdInterrupt.Error(), "process already finished") {
-					panic(errCmdInterrupt)
+			// ----------------------- CHECK DUMMY FILE ------------------------
+			if !s.ReadOnly && !s.NoDummyFileCheck { // nolint:nestif
+				dummyFile, err := os.CreateTemp(localPathAbs, ".dummy_*")
+
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot create a dummy file in local mount point")
+
+					foundErrors = true
+				}
+
+				_, err = dummyFile.WriteString("dummy")
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot write a dummy file in local mount point")
+
+					foundErrors = true
+				}
+
+				err = dummyFile.Close()
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot close a dummy file in local mount point")
+
+					foundErrors = true
+				}
+
+				err = os.Remove(dummyFile.Name())
+				if err != nil {
+					log.Debug().Str("filename", dummyFile.Name()).Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot remove a dummy file in local mount point")
+
+					foundErrors = true
+				}
+
+				// ------------------------ END DUMMY FILE -------------------------
+
+				// ---------------------- CHECK MOUNT POINT ------------------------
+				isMountPoint, err := checkMountpoint(localPathAbs)
+				if err != nil {
+					log.Debug().Err(err).Msg(
+						"checkRuntimeRcloneErrors - cannot check local mount point")
+
+					foundErrors = true
+				}
+
+				if !isMountPoint {
+					log.Debug().Err(err).Msg(
+						"checkRuntimeRcloneErrors - local mount point is not a mount point")
+
+					foundErrors = true
+				}
+				// ----------------------- END MOUNT POINT -------------------------
+
+				log.Debug().Bool("errors", foundErrors).Msg("checkRuntimeRcloneErrors")
+
+				if foundErrors {
+					log.Debug().Msg("checkRuntimeRcloneErrors - interrupt rclone process")
+
+					errCmdInterrupt := s.rcloneCmd.Process.Signal(os.Interrupt)
+					if errCmdInterrupt != nil && !strings.Contains(errCmdInterrupt.Error(), "process already finished") {
+						panic(errCmdInterrupt)
+					}
 				}
 			}
 
@@ -666,17 +732,17 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 		if time.Since(startT)+deltaCheckTokenRefresh >= time.Duration(s.RefreshTokenRenew)*time.Minute { //nolint:nestif
 			startT = time.Now()
 
+			wg.Add(1)
 			s.RefreshToken(credsIAM, endpoint)
+			wg.Done()
 		}
 
 		select {
 		case <-signalChan:
 			color.Red.Println("\r==> Wait a moment, service is exiting...")
-			log.Debug().Msg("UpdateTokenLoop interrupt signa!")
+			log.Debug().Msg("UpdateTokenLoop interrupt signal!")
 
 			loop = false
-
-			close(s.rcloneErrChan)
 
 			log.Debug().Msg("Interrupt rclone process")
 
@@ -691,6 +757,7 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 
 			for rcloneLogError := range RcloneLogErrors(s.rcloneLogPath, 0) {
 				log.Debug().Str("log string", rcloneLogError.Str).Msg("rclone error")
+
 				errorsFound = true
 			}
 
@@ -702,24 +769,26 @@ func (s *Server) UpdateTokenLoop(credsIAM IAMCreds, endpoint string) { //nolint:
 
 			if s.TryRemount && s.numRemount < maxRemountAttempts {
 				s.numRemount++
+
 				color.Yellow.Printf("==> Try to remount... attempt %d\n", s.numRemount)
-				rcloneCmd, errChan, logPath, errMount := MountVolume(
-					s.Instance,
-					s.RemotePath,
-					s.LocalPath,
-					s.Client.ConfDir,
-					s.ReadOnly,
-					s.NoModtime,
-					s.MountNewFlags,
-				)
 
-				if errMount != nil {
-					panic(errMount)
+				err := unmount(s.LocalPath)
+
+				log.Debug().Err(err).Msg("Unmount")
+
+				if err != nil {
+					color.Red.Println("==> Error, cannot unmount local folder...")
+				} else {
+					rcloneCmd, errChan, logPath, errMount := MountVolume(s)
+
+					if errMount != nil {
+						panic(errMount)
+					}
+
+					s.rcloneCmd = rcloneCmd
+					s.rcloneErrChan = errChan
+					s.rcloneLogPath = logPath
 				}
-
-				s.rcloneCmd = rcloneCmd
-				s.rcloneErrChan = errChan
-				s.rcloneLogPath = logPath
 			} else {
 				color.Yellow.Println("==> Check the logs for more details...")
 				color.Green.Println("==> Program will exit immediately!")

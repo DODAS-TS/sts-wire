@@ -18,8 +18,10 @@ import (
 )
 
 type RefreshTokenStruct struct {
-	RefreshToken string `json:"refresh_token"`
-	AccessToken  string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token"`
+	AccessToken      string `json:"access_token"`
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
 }
 
 type IAMClientConfig struct {
