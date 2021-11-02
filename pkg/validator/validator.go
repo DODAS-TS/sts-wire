@@ -27,7 +27,7 @@ var (
 	ErrNoValidLogFile               = errors.New("no valid log file")
 	validLogFile                    = regexp.MustCompile(`^([a-zA-Z_\:\\\-\s0-9\.\/]+)+(\.log)$`)
 	ErrNoValidPath                  = errors.New("no valid path")
-	validPath                       = regexp.MustCompile(`^([a-z_\-\s0-9\.\/]+)+$`)
+	validPath                       = regexp.MustCompile(`^([a-zA-Z_\-\s0-9\.\/]+)+$`)
 	ErrNoValidEndpoint              = errors.New("no valid s3 endpoint")
 	ErrNoValidWebURL                = errors.New("no valid web URL")
 	validWebURL                     = regexp.MustCompile(`^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)?(?:localhost)?[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$`)
@@ -237,12 +237,12 @@ func LocalPath(localMountPoint string) (bool, error) {
 
 	absPath, errAbs := filepath.Abs(filepath.Clean(localMountPoint))
 	if errAbs != nil {
-		return false, fmt.Errorf("no valid path: %w", errAbs)
+		return false, fmt.Errorf("no valid path: %w, abs error", errAbs)
 	}
 
 	_, errStat := os.Stat(absPath)
 	if errStat != nil && !os.IsNotExist(errStat) {
-		return false, fmt.Errorf("no valid path: %w", errStat)
+		return false, fmt.Errorf("no valid path: %w, something wront", errStat)
 	}
 
 	// TODO: better check over folder permissions
@@ -255,7 +255,7 @@ func LocalPath(localMountPoint string) (bool, error) {
 
 	parentFolder, errStat := os.Stat(filepath.Dir(absPath))
 	if errStat != nil {
-		return false, fmt.Errorf("no valid path: %w", errStat)
+		return false, fmt.Errorf("no valid path: %w, parent folder", errStat)
 	}
 
 	if !parentFolder.IsDir() || os.IsNotExist(errStat) {
