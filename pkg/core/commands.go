@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
@@ -138,6 +139,17 @@ var (
 
 			log.Debug().Str("log file", logFile).Msg("logging")
 			log.Debug().Msg("Start sts-wire")
+
+			if runtime.GOOS == "linux" {
+				fuseCmd := exec.Command("fusermount -V")
+
+				fuseCmdErr := fuseCmd.Run()
+
+				if fuseCmdErr != nil {
+					log.Err(fuseCmdErr).Msg("fusermount")
+					panic(fuseCmdErr)
+				}
+			}
 
 			inputReader := *bufio.NewReader(os.Stdin)
 			scanner := GetInputWrapper{
