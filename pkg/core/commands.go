@@ -66,6 +66,7 @@ var (
 	noModtime         bool   //nolint:gochecknoglobals
 	noDummyFileCheck  bool   //nolint:gochecknoglobals
 	localCache        string //nolint:gochecknoglobals
+	localCacheDir     string //nolint:gochecknoglobals
 	readOnly          bool   //nolint:gochecknoglobals
 	tryRemount        bool   //nolint:gochecknoglobals
 	errNumArgs        = errors.New(errNumArgsS)
@@ -178,6 +179,9 @@ var (
 			if localCache == "" {
 				localCache = viper.GetString("localCache")
 			}
+			if localCacheDir == "" {
+				localCacheDir = viper.GetString("localCacheDir")
+			}
 			readOnly = readOnly || viper.GetBool("readOnly")
 
 			if confTryRemount := viper.Get("tryRemount"); confTryRemount != nil && confTryRemount.(bool) == false {
@@ -193,6 +197,7 @@ var (
 			log.Debug().Bool("noModtime", noModtime).Msg("command")
 			log.Debug().Bool("noDummyFileCheck", noDummyFileCheck).Msg("command")
 			log.Debug().Str("localCache", localCache).Msg("command")
+			log.Debug().Str("localCacheDir", localCacheDir).Msg("command")
 			log.Debug().Bool("readOnly", readOnly).Msg("command")
 			log.Debug().Bool("tryRemount", tryRemount).Msg("command")
 
@@ -218,6 +223,9 @@ var (
 					panic(err)
 				}
 				if validLocalPath, err := validator.LocalPath(localMountPath); !validLocalPath {
+					panic(err)
+				}
+				if validLocalCacheDir, err := validator.LocalPath(localCacheDir); !validLocalCacheDir {
 					panic(err)
 				}
 			}
@@ -435,6 +443,7 @@ var (
 				NoModtime:         noModtime,
 				NoDummyFileCheck:  noDummyFileCheck,
 				LocalCache:        localCache,
+				LocalCacheDir:     localCacheDir,
 				MountNewFlags:     rcloneMountFlags,
 				TryRemount:        tryRemount,
 			}
@@ -602,6 +611,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().BoolVar(&noModtime, "noModtime", false, "mount with noModtime option")
 	rootCmd.PersistentFlags().BoolVar(&noDummyFileCheck, "noDummyFileCheck", false, "disable dummy file check on mountpoint")
 	rootCmd.PersistentFlags().StringVar(&localCache, "localCache", "off", "choose local cache type [off,minimal,writes,full]")
+	rootCmd.PersistentFlags().StringVar(&localCacheDir, "localCacheDir", "./.rcloneMountCache", "path for the local cache directory, used if localCache is different from \"off\"")
 	rootCmd.PersistentFlags().BoolVar(&readOnly, "readOnly", false, "mount with read-only option")
 	rootCmd.PersistentFlags().BoolVar(&tryRemount, "tryRemount", true,
 		"try to remount if there are any rclone errors (up to 10 times)")

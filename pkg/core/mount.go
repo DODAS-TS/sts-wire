@@ -321,7 +321,7 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 
 	commandFlags := []string{
 		"--cache-dir",
-		"./.rcloneMountCache",
+		serverInstance.LocalCacheDir,
 		// TODO: fix -> increase the volume of log for no purpose
 		// "--debug-fuse",
 		// "--attr-timeout",
@@ -338,7 +338,7 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 
 	curCacheType := strings.ToLower(serverInstance.LocalCache)
 	if curCacheType != "off" {
-		err := os.RemoveAll("./.rcloneMountCache")
+		err := os.RemoveAll(serverInstance.LocalCacheDir)
 		if err != nil && !os.IsNotExist(err) {
 			panic(err)
 		}
