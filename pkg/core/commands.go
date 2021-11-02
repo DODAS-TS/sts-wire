@@ -141,7 +141,7 @@ var (
 			log.Debug().Msg("Start sts-wire")
 
 			if runtime.GOOS == "linux" {
-				fuseCmd := exec.Command("fusermount -V")
+				fuseCmd := exec.Command("fusermount", "-V")
 
 				fuseCmdErr := fuseCmd.Run()
 
