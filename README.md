@@ -100,6 +100,7 @@ Flags:
   -h, --help                      help for sts-wire
       --insecureConn              check the http connection certificate
       --localCache string         choose local cache type [off,minimal,writes,full] (default "off")
+      --localCacheDir string      path for the local cache directory, used if localCache is different from "off" (default "./.rcloneMountCache")
       --log string                where the log has to write, a file path or stderr (default "default "your/app/config/dir/log/sts-wire.log")
       --noDummyFileCheck          disable dummy file check on mountpoint
       --noModtime                 mount with noModtime option

@@ -91,6 +91,7 @@ type Server struct {
 	NoModtime         bool
 	NoDummyFileCheck  bool
 	LocalCache        string
+	LocalCacheDir     string
 	ReadOnly          bool
 	MountNewFlags     string
 	TryRemount        bool
