@@ -284,16 +284,20 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 	}
 
 	commandArgs := []string{
+		// Ref: https://rclone.org/flags/
 		"--config",
 		configPathAbs,
 		// "--daemon",
 		"--log-file",
 		logPath,
+		// Default loglevel: NOTICE
 		"--log-level",
-		"DEBUG",
+		serverInstance.RcloneLogLevel,
 		"--use-json-log",
 		"--no-check-certificate",
 		"--cache-db-purge",
+		"--fast-list",
+		"--use-mmap", // https://rclone.org/docs/#buffer-size-size
 		/*
 		 * https://rclone.org/docs/#use-server-modtime
 		 * https://rclone.org/commands/rclone_mount/#vfs-performance
@@ -306,14 +310,14 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		 * is needed by an operation.
 		 */
 		"--use-server-modtime",
-		// /*
-		//  * https://rclone.org/docs/#c-checksum
-		//  *
-		//  * Normally rclone will look at modification time and size of files
-		//  * to see if they are equal. If you set this flag then rclone
-		//  * will check the file hash and size to determine if files are equal.
-		//  */
-		// "--checksum",
+		/*
+		 * https://rclone.org/docs/#c-checksum
+		 *
+		 * Normally rclone will look at modification time and size of files
+		 * to see if they are equal. If you set this flag then rclone
+		 * will check the file hash and size to determine if files are equal.
+		 */
+		"--checksum",
 		"mount",
 		conf,
 		localPathAbs,
@@ -355,9 +359,14 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 	case "writes":
 		commandFlags = append(commandFlags, "--vfs-cache-mode", "writes")
 	case "full":
-		commandFlags = append(commandFlags, "--vfs-read-wait", "55ms")
-		commandFlags = append(commandFlags, "--vfs-read-ahead", "8M")
-		commandFlags = append(commandFlags, "--buffer-size", "2M")
+		// Ref: https://rclone.org/commands/rclone_mount/#vfs-cache-mode-full
+		commandFlags = append(commandFlags, "--buffer-size", "0Mi")
+		// commandFlags = append(commandFlags, "--attr-timeout", "1m")
+		// commandFlags = append(commandFlags, "--vfs-read-wait", "28ms")
+		commandFlags = append(commandFlags, "--vfs-read-ahead", "0M")
+		// commandFlags = append(commandFlags, "--vfs-read-chunk-size", "8M")
+		commandFlags = append(commandFlags, "--vfs-cache-poll-interval", "1h")
+		commandFlags = append(commandFlags, "--vfs-cache-max-size", "4G")
 		commandFlags = append(commandFlags, "--vfs-cache-mode", "full")
 	}
 

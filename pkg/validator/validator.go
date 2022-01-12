@@ -125,6 +125,16 @@ func init() {
 	rcloneMountOptions["--write-back-cache"] = nil
 }
 
+// RcloneLogLevel checks if the level is a valid rclone log level
+func RcloneLogLevel(level string) (bool, error) {
+	switch strings.ToLower(level) {
+	case "error", "notice", "info", "debug":
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // RcloneMountFlags checks if the flags are valid rclone mount flags
 func RcloneMountFlags(flagList string) (bool, error) {
 	parts := strings.Split(flagList, " ")

@@ -60,6 +60,7 @@ var (
 	logFile           string //nolint:gochecknoglobals
 	defaultLogFile    string //nolint:gochecknoglobals
 	rcloneMountFlags  string //nolint:gochecknoglobals
+	rcloneLogLevel    string //nolint:gochecknoglobals
 	insecureConn      bool   //nolint:gochecknoglobals
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
@@ -380,8 +381,13 @@ var (
 				panic(errRefreshToken)
 			}
 
+			if valid, errRcloneLogLevel := validator.RcloneLogLevel(rcloneLogLevel); errRcloneLogLevel != nil || !valid {
+				panic(errRcloneLogLevel)
+			}
+
 			log.Debug().Int("refreshTokenRenew", refreshTokenRenew).Msg("command")
 			log.Debug().Str("rcloneMountFlags", rcloneMountFlags).Msg("command")
+			log.Debug().Str("rcloneLogLevel", rcloneLogLevel).Msg("command")
 
 			if rcloneMountFlags != "" {
 				if validMountFlags, err := validator.RcloneMountFlags(rcloneMountFlags); !validMountFlags {
@@ -457,6 +463,7 @@ var (
 				LocalCache:        localCache,
 				LocalCacheDir:     localCacheDir,
 				MountNewFlags:     rcloneMountFlags,
+				RcloneLogLevel:    rcloneLogLevel,
 				TryRemount:        tryRemount,
 			}
 
@@ -615,6 +622,8 @@ func init() { //nolint: gochecknoinits
 		"where the log has to write, a file path or stderr")
 	rootCmd.PersistentFlags().StringVar(&rcloneMountFlags, "rcloneMountFlags", rcloneMountFlags,
 		"overwrite the rclone mount flags")
+	rootCmd.PersistentFlags().StringVar(&rcloneLogLevel, "rcloneLogLevel", "NOTICE",
+		"set the rclone log level (ERROR, NOTICE, INFO, DEBUG)")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "start the program in debug mode")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConn", false, "check the http connection certificate")
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
@@ -644,6 +653,11 @@ func init() { //nolint: gochecknoinits
 	}
 
 	errFlag = viper.BindPFlag("rcloneMountFlags", rootCmd.PersistentFlags().Lookup("rcloneMountFlags"))
+	if errFlag != nil {
+		panic(errFlag)
+	}
+
+	errFlag = viper.BindPFlag("rcloneLogLevel", rootCmd.PersistentFlags().Lookup("rcloneLogLevel"))
 	if errFlag != nil {
 		panic(errFlag)
 	}

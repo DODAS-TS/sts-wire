@@ -88,6 +88,7 @@ type Server struct {
 	rcloneErrChan     chan error
 	rcloneLogPath     string
 	rcloneLogLine     int
+	RcloneLogLevel    string
 	NoModtime         bool
 	NoDummyFileCheck  bool
 	LocalCache        string
