@@ -305,6 +305,7 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 		 * call to retrieve the metadata when the modtime
 		 * is needed by an operation.
 		 */
+		"--update",
 		"--use-server-modtime",
 		// /*
 		//  * https://rclone.org/docs/#c-checksum
