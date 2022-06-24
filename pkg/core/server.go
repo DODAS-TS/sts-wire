@@ -133,6 +133,7 @@ func (s *Server) noRefreshToken() IAMCreds {
 		},
 		RedirectURL: fmt.Sprintf("http://localhost:%d/oauth2/callback", s.Client.ClientConfig.Port),
 		Scopes:      []string{"address", "phone", "openid", "email", "profile", "offline_access"},
+		Audience: "minio-af-it",
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -520,6 +521,7 @@ func (s *Server) RefreshToken(credsIAM IAMCreds, endpoint string) { //nolint:fun
 	v.Set("client_secret", s.CurClientResponse.ClientSecret)
 	v.Set("grant_type", "refresh_token")
 	v.Set("refresh_token", credsIAM.RefreshToken)
+	v.Set("aud", "minio-af-it")
 
 	url, err := url.Parse(endpoint + "/token" + "?" + v.Encode())
 	if err != nil {
