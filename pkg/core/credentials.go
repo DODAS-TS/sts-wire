@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -23,6 +24,34 @@ type InitClientConfig struct {
 	IAMServer      string
 	ClientTemplate string
 	NoPWD          bool
+}
+
+type WellKnown struct {
+	RegisterEndpoint string `json:"registration_endpoint"`
+}
+
+func GetRegisterEndpoint(endpoint string) (register_endpoint string){
+	var c http.Client
+	well_known := endpoint + "/.well-known/openid-configuration"
+	resp, err := c.Get(well_known)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	var wk WellKnown
+
+	errUnmarshall := json.Unmarshal(body, &wk)
+
+	if errUnmarshall != nil {
+		panic(errUnmarshall)
+	}
+
+	return string(wk.RegisterEndpoint)
 }
 
 func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientResponse ClientResponse, passwd *memguard.Enclave, err error) { //nolint:funlen,cyclop,gocognit,lll
@@ -66,7 +95,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			endpoint = t.IAMServer
 		}
 
-		register := endpoint + "/register"
+		register := GetRegisterEndpoint(endpoint)
 
 		log.Debug().Str("IAM register url", register).Msg("credentials")
 		color.Green.Printf("==> IAM register url: %s\n", register)
