@@ -24,7 +24,7 @@ const ClientTemplate = `{
 const RCloneTemplate = `
 [{{ .Instance }}]
 type = s3
-provider = INFN Cloud
+provider = Ceph
 oidc_agent = false
 account =
 env_auth = false

@@ -79,6 +79,7 @@ type Server struct {
 	Client            InitClientConfig
 	Instance          string
 	S3Endpoint        string
+ RoleName          string
 	RemotePath        string
 	LocalPath         string
 	Endpoint          string
@@ -230,6 +231,7 @@ func (s *Server) noRefreshToken() IAMCreds {
 				Token:             token,
 				HTTPClient:        &s.Client.HTTPClient,
 				RefreshTokenRenew: s.RefreshTokenRenew,
+    RoleName:          s.RoleName,
 			},
 		}
 
@@ -378,6 +380,7 @@ func (s *Server) useRefreshToken() IAMCreds {
 			Token:             accessToken,
 			HTTPClient:        &s.Client.HTTPClient,
 			RefreshTokenRenew: s.RefreshTokenRenew,
+   RoleName:          s.RoleName,
 		},
 	}
 
