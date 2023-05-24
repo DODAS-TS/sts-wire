@@ -54,6 +54,7 @@ type IAMProvider struct {
 	StsEndpoint       string
 	HTTPClient        *http.Client
 	Token             string
+	RoleName          string
 	Creds             *AssumeRoleWithWebIdentityResponse
 	RefreshTokenRenew int
 }
@@ -93,6 +94,8 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 		strconv.Itoa(t.RefreshTokenRenew*60)).Msg("IAM - Retrieve")
 
 	body := url.Values{}
+	body.Set("RoleArn", "arn:aws:iam:::role/"+t.RoleName)
+	body.Set("RoleSessionName", t.RoleName)
 	body.Set("Action", "AssumeRoleWithWebIdentity")
 	body.Set("Version", "2011-06-15")
 	body.Set("WebIdentityToken", t.Token)
