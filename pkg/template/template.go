@@ -26,6 +26,7 @@ const RCloneTemplate = `
 type = s3
 provider = INFN Cloud
 oidc_agent = false
+role_name = {{ .RoleName }}
 account =
 env_auth = false
 access_key_id =

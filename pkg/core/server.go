@@ -66,6 +66,7 @@ func availableRandomPort() (port string, err error) {
 type RCloneStruct struct {
 	Address  string
 	Instance string
+	RoleName string
 }
 
 // IAMCreds ..
@@ -80,6 +81,7 @@ type Server struct {
 	Instance          string
 	S3Endpoint        string
 	RoleName          string
+	Audience          string
 	RemotePath        string
 	LocalPath         string
 	Endpoint          string
@@ -136,6 +138,9 @@ func (s *Server) noRefreshToken() IAMCreds {
 		Scopes:      []string{"address", "phone", "openid", "email", "profile", "offline_access"},
 	}
 
+	log.Debug().Str("audience", s.Audience).Msg("IAM audience")
+	authCode := oauth2.SetAuthURLParam("audience", s.Audience)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Debug().Str("method", r.Method).Str("URI", r.RequestURI).Msg("IAM Client - /")
 		if r.RequestURI != "/" {
@@ -145,7 +150,7 @@ func (s *Server) noRefreshToken() IAMCreds {
 			return
 		}
 
-		http.Redirect(w, r, config.AuthCodeURL(state), http.StatusFound)
+		http.Redirect(w, r, config.AuthCodeURL(state, authCode), http.StatusFound)
 	})
 
 	http.HandleFunc("/oauth2/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -418,10 +423,12 @@ func (s *Server) Start() (IAMCreds, string, error) { //nolint: funlen, gocognit
 
 	log.Debug().Str("s.S3Endpoint", s.S3Endpoint).Msg("server")
 	log.Debug().Str("s.Instance", s.Instance).Msg("server")
+	log.Debug().Str("s.RoleName", s.RoleName).Msg("server")
 
 	confRClone := RCloneStruct{
 		Address:  s.S3Endpoint,
 		Instance: s.Instance,
+		RoleName: s.RoleName,
 	}
 
 	tmpl, err := template.New("client").Parse(iamTmpl.RCloneTemplate)

@@ -37,7 +37,7 @@ const (
 '##::: ##:::: ##::::'##::: ##:::::::::: ##: ##: ##:: ##:: ##::. ##:: ##:::::::
 . ######::::: ##::::. ######:::::::::::. ###. ###::'####: ##:::. ##: ########:
 :......::::::..::::::......:::::::::::::...::...:::....::..:::::..::........::`
-	minNumArgs = 5
+	minNumArgs = 6
 )
 
 // Execute of the sts-wire command.
@@ -50,8 +50,8 @@ func Execute() {
 }
 
 const (
-	errNumArgsS          = "requires the following arguments: <instance name> <s3 endpoint> <role name> <rclone remote path> <local mount point>"
-	numAcceptedArguments = 5
+	errNumArgsS          = "requires the following arguments: <instance name> <s3 endpoint> <role name> <audience> <rclone remote path> <local mount point>"
+	numAcceptedArguments = 6
 )
 
 var (
@@ -61,6 +61,7 @@ var (
 	defaultLogFile    string //nolint:gochecknoglobals
 	rcloneMountFlags  string //nolint:gochecknoglobals
 	roleName          string //nolint:gochecknoglobals
+	audience          string //nolint:gochecknoglobals
 	insecureConn      bool   //nolint:gochecknoglobals
 	refreshTokenRenew int    //nolint:gochecknoglobals
 	noPWD             bool   //nolint:gochecknoglobals
@@ -75,7 +76,7 @@ var (
 
 	// rootCmd the sts-wire command.
 	rootCmd = &cobra.Command{ //nolint:exhaustivestruct,gochecknoglobals
-		Use:   "sts-wire <IAM server> <instance name> <s3 endpoint> <role name> <rclone remote path> <local mount point>",
+		Use:   "sts-wire <IAM server> <instance name> <s3 endpoint> <role name> <audience> <rclone remote path> <local mount point>",
 		Short: "",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if cfgFile == "" {
@@ -92,10 +93,10 @@ var (
 					if validEndpoint, err := validator.S3Endpoint(os.Args[3]); !validEndpoint {
 						panic(err)
 					}
-					if validRemotePath, err := validator.RemotePath(os.Args[5]); !validRemotePath {
+					if validRemotePath, err := validator.RemotePath(os.Args[6]); !validRemotePath {
 						panic(err)
 					}
-					if validLocalPath, err := validator.LocalPath(os.Args[6]); !validLocalPath {
+					if validLocalPath, err := validator.LocalPath(os.Args[7]); !validLocalPath {
 						panic(err)
 					}
 				}
@@ -163,6 +164,7 @@ var (
 				confDir        string
 				s3Endpoint     string
 				roleName       string
+				audience       string
 				remote         string
 				localMountPath string
 			)
@@ -172,6 +174,7 @@ var (
 				instance = viper.GetString("instance_name")
 				s3Endpoint = viper.GetString("s3_endpoint")
 				roleName = viper.GetString("role_name")
+				audience = viper.GetString("audience")
 				remote = viper.GetString("rclone_remote_path")
 				localMountPath = viper.GetString("local_mount_point")
 			} else {
@@ -179,8 +182,9 @@ var (
 				instance = os.Args[2]
 				s3Endpoint = os.Args[3]
 				roleName = os.Args[4]
-				remote = os.Args[5]
-				localMountPath = os.Args[6]
+				audience = os.Args[5]
+				remote = os.Args[6]
+				localMountPath = os.Args[7]
 			}
 
 			// TODO: check if it is useful or not to have env variable overwrite mechanism
@@ -207,7 +211,8 @@ var (
 			log.Debug().Str("iamServer", iamServer).Msg("command")
 			log.Debug().Str("istance", instance).Msg("command")
 			log.Debug().Str("s3Endpoint", s3Endpoint).Msg("command")
-			log.Debug().Str("roleName", remote).Msg("command")
+			log.Debug().Str("roleName", roleName).Msg("command")
+			log.Debug().Str("audience", audience).Msg("command")
 			log.Debug().Str("remote", remote).Msg("command")
 			log.Debug().Str("localMountPath", localMountPath).Msg("command")
 			log.Debug().Bool("noPassword", noPWD).Msg("command")
@@ -452,6 +457,7 @@ var (
 				Instance:          instance,
 				S3Endpoint:        s3Endpoint,
 				RoleName:          roleName,
+				Audience:          audience,
 				RemotePath:        remote,
 				LocalPath:         localMountPath,
 				Endpoint:          endpoint,
@@ -622,6 +628,7 @@ func init() { //nolint: gochecknoinits
 	rootCmd.PersistentFlags().StringVar(&rcloneMountFlags, "rcloneMountFlags", rcloneMountFlags,
 		"overwrite the rclone mount flags")
 	rootCmd.PersistentFlags().StringVar(&roleName, "roleName", roleName, "set role to be assumed with web identity")
+	rootCmd.PersistentFlags().StringVar(&audience, "audience", audience, "set audience to be put in web identity")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "start the program in debug mode")
 	rootCmd.PersistentFlags().BoolVar(&insecureConn, "insecureConn", false, "check the http connection certificate")
 	rootCmd.PersistentFlags().IntVar(&refreshTokenRenew, "refreshTokenRenew", 15,
