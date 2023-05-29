@@ -15,17 +15,17 @@ ifeq ($(UNAME_S),Darwin)
 	GOBINDATAEXE=${GOPATH}/bin/go-bindata
 endif
 
+
 .PHONY: all
 .NOTPARALLEL: build-linux build-windows build-macos build-rclone download-rclone download-rclone-windows download-rclone-macos
 all: clean build-linux-with-rclone build-linux build-windows build-macos
 
-
 .PHONY: build-rclone
 build-rclone:
 	@echo "==> bindata rclone linux"
-	@mkdir -p pkg/rclone/data/linux
+	@mkdir -p pkg/rclone/data/linux && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone linux"
-	@rm -rf ../rclone/rclone/* && cd ../rclone/ && make build && cd ${ROOTDIR} && cp ../rclone/rclone/rclone pkg/rclone/data/linux/rclone
+	@cd rclone && make build && cp rclone/rclone ${ROOTDIR}/pkg/rclone/data/linux/rclone && cd ${ROOTDIR}
 
 .PHONY: download-rclone
 download-rclone:
