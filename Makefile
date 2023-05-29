@@ -1,3 +1,4 @@
+ROOTDIR=$(shell git rev-parse --show-toplevel)
 GOBINDATAEXE=$(shell go env GOPATH)/bin/go-bindata
 SEDCMD=sed -i
 
@@ -14,10 +15,17 @@ ifeq ($(UNAME_S),Darwin)
 	GOBINDATAEXE=${GOPATH}/bin/go-bindata
 endif
 
-.PHONY: all
-.NOTPARALLEL: build-linux build-windows build-macos download-rclone download-rclone-windows download-rclone-macos
-all: clean build-linux build-windows build-macos
 
+.PHONY: all
+.NOTPARALLEL: build-linux build-windows build-macos build-rclone download-rclone download-rclone-windows download-rclone-macos
+all: clean build-linux-with-rclone build-linux build-windows build-macos
+
+.PHONY: build-rclone
+build-rclone:
+	@echo "==> bindata rclone linux"
+	@mkdir -p pkg/rclone/data/linux && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
+	@echo "==> build rclone linux"
+	@cd rclone && make build && cp rclone/rclone ${ROOTDIR}/pkg/rclone/data/linux/rclone && cd ${ROOTDIR}
 
 .PHONY: download-rclone
 download-rclone:
@@ -42,6 +50,17 @@ download-rclone-macos:
 
 .PHONY: build-linux
 build-linux: download-rclone
+	@echo "==> build sts-wire linux"
+	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=linux'"\
+		-v -o sts-wire_linux
+
+.PHONY: build-linux-with-rclone
+build-linux-with-rclone: build-rclone
 	@echo "==> build sts-wire linux"
 	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w\
 		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\

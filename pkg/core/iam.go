@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -87,6 +88,27 @@ type WebIdentityResult struct {
 	SubjectFromWebIdentityToken string           `xml:",omitempty"`
 }
 
+type MyXMLStruct struct {
+	XMLName xml.Name `xml:"AssumeRoleWithWebIdentityResponse"`
+	Attr    string   `xml:"xmlns,attr"`
+	Result  struct {
+		SubjectFromWebIdentityToken string `xml:"SubjectFromWebIdentityToken"`
+		Audience                    string `xml:"Audience"`
+		AssumedRoleUser             struct {
+			Arn          string `xml:"Arn"`
+			AssumeRoleID string `xml:"AssumeRoleId"`
+		} `xml:"AssumedRoleUser"`
+		Credentials struct {
+			AccessKey    string `xml:"AccessKeyId"`
+			Expiration   string `xml:"Expiration"`
+			SecretAccess string `xml:"SecretAccessKey"`
+			SessionToken string `xml:"SessionToken"`
+		} `xml:"Credentials"`
+		Provider         string `xml:"Provider"`
+		PackedPolicySize int    `xml:"PackedPolicySize"`
+	} `xml:"AssumeRoleWithWebIdentityResult"`
+}
+
 // Retrieve credentials.
 func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 	log.Debug().Int("RefreshTokenRenew",
@@ -140,18 +162,43 @@ func (t *IAMProvider) Retrieve() (credentials.Value, error) { // nolint:funlen
 
 	var rbody bytes.Buffer
 
-	_, errRead := rbody.ReadFrom(resp.Body)
+	bodyBytes, errRead := ioutil.ReadAll(resp.Body)
+
 	if errRead != nil {
 		log.Err(errRead).Msg("IAM read body")
 
 		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errRead)
 	}
 
+	ns := "https://sts.amazonaws.com/doc/2011-06-15/"
+
+	data := string(bodyBytes)
+
+	xmlStruct := MyXMLStruct{
+		Attr: ns,
+	}
+
+	errUnmarshall := xml.Unmarshal([]byte(data), &xmlStruct)
+	if errUnmarshall != nil {
+		log.Err(errUnmarshall).Msg("IAM xml unmarshal")
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errUnmarshall)
+	}
+
+	xmlBytes, errMarshalIndent := xml.MarshalIndent(xmlStruct, "", "  ")
+	if errMarshalIndent != nil {
+		log.Err(errUnmarshall).Msg("IAM xml marshal indent")
+
+		return credentials.Value{}, fmt.Errorf("IAM retrieve %w", errMarshalIndent)
+	}
+
+	rbody.Write(xmlBytes)
+
 	log.Debug().Str("body", rbody.String()).Msg("IAM")
 
 	t.Creds = &AssumeRoleWithWebIdentityResponse{}
 
-	errUnmarshall := xml.Unmarshal(rbody.Bytes(), t.Creds)
+	errUnmarshall = xml.Unmarshal(rbody.Bytes(), t.Creds)
 	if errUnmarshall != nil {
 		log.Err(errUnmarshall).Msg("IAM xml unmarshal")
 
