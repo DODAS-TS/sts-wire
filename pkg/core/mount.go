@@ -371,7 +371,8 @@ func MountVolume(serverInstance *Server) (*exec.Cmd, chan error, string, error) 
 	}
 
 	if serverInstance.MountNewFlags != "" {
-		commandArgs = strings.Split(serverInstance.MountNewFlags, " ")
+		newFlags := strings.Split(serverInstance.MountNewFlags, " ")
+		commandArgs = append(commandArgs, newFlags...)
 	} else {
 		commandArgs = append(commandArgs, commandFlags...)
 	}
