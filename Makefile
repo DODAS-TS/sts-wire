@@ -17,11 +17,18 @@ endif
 
 
 .PHONY: all
-.NOTPARALLEL: build-linux build-windows build-macos build-rclone download-rclone download-rclone-windows download-rclone-macos
+.NOTPARALLEL: build-linux build-windows build-macos build-rclone-macos build-rclone-linux download-rclone download-rclone-windows download-rclone-macos
 all: clean build-linux-with-rclone build-linux build-windows build-macos
 
-.PHONY: build-rclone
-build-rclone:
+.PHONY: build-rclone-macos
+build-rclone-macos:
+	@echo "==> bindata rclone macos"
+	@mkdir -p pkg/rclone/data/darwin && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
+	@echo "==> build rclone macos"
+	@cd rclone && make build-macos && cp rclone/rclone ${ROOTDIR}/pkg/rclone/data/darwin/rclone && cd ${ROOTDIR}
+
+.PHONY: build-rclone-linux
+build-rclone-linux:
 	@echo "==> bindata rclone linux"
 	@mkdir -p pkg/rclone/data/linux && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone linux"
@@ -59,8 +66,19 @@ build-linux: download-rclone
 		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=linux'"\
 		-v -o sts-wire_linux
 
+.PHONY: build-macos-with-rclone
+build-macos-with-rclone: build-rclone-macos
+	@echo "==> build sts-wire macOS"
+	@env GOOS=darwin CGO_ENABLED=0 go build -ldflags "-s -w\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=darwin'"\
+		-v -o sts-wire_osx
+
 .PHONY: build-linux-with-rclone
-build-linux-with-rclone: build-rclone
+build-linux-with-rclone: build-rclone-linux
 	@echo "==> build sts-wire linux"
 	@env GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w\
 		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
