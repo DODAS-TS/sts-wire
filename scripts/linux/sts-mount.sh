@@ -82,6 +82,7 @@ if [ -z "$pw_file" ] || [ -z "$client_name" ] || [ -z "$iam_url" ] || [ -z "$rgw
   usage
 fi
 
+export OIDC_CONFIG_DIR=$HOME/.oidc-agent
 oidc_account_list=$(oidc-add -l)
 if ! echo "$oidc_account_list" | grep -q "^$client_name$"; then
   echo "Error: OIDC client '$client_name' does not exist in the list of client configurations."
