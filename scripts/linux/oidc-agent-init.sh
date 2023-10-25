@@ -2,6 +2,7 @@
 
 export TMPDIR="/tmp"
 export OIDC_AGENT=/usr/bin/oidc-agent
+export OIDC_CONFIG_DIR=$HOME/.oidc-agent
 export OIDC_CLIENT_NAME=$1
 export AUDIENCE=$2
 export PW_FILE=$3
