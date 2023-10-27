@@ -23,9 +23,9 @@ all: clean build-linux-with-rclone build-linux build-windows build-macos
 .PHONY: build-rclone-windows
 build-rclone-windows:
 	@echo "==> bindata rclone windows"
-	@mkdir -p pkg/rclone/data/windows && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
+	@mkdir -p pkg/rclone/data/windows && rm -r -fo rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone windows"
-	@cd rclone && make build-windows && cp rclone/rclone ${ROOTDIR}/pkg/rclone/data/windows/rclone && cd ${ROOTDIR}
+	@cd rclone && make build-windows && copy rclone\rclone ${ROOTDIR}\pkg\rclone\data\windows\rclone && cd ${ROOTDIR}
 
 .PHONY: build-rclone-macos
 build-rclone-macos:
