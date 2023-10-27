@@ -20,6 +20,13 @@ endif
 .NOTPARALLEL: build-linux build-windows build-macos build-rclone-macos build-rclone-linux download-rclone download-rclone-windows download-rclone-macos
 all: clean build-linux-with-rclone build-linux build-windows build-macos
 
+.PHONY: build-rclone-windows
+build-rclone-windows:
+	@echo "==> bindata rclone windows"
+	@mkdir -p pkg/rclone/data/windows && rm -rf rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
+	@echo "==> build rclone windows"
+	@cd rclone && make build-windows && cp rclone/rclone ${ROOTDIR}/pkg/rclone/data/windows/rclone && cd ${ROOTDIR}
+
 .PHONY: build-rclone-macos
 build-rclone-macos:
 	@echo "==> bindata rclone macos"
@@ -65,6 +72,17 @@ build-linux: download-rclone
 		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
 		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=linux'"\
 		-v -o sts-wire_linux
+
+.PHONY: build-windows-with-rclone
+build-windows-with-rclone: build-rclone-windows
+	@echo "==> build sts-wire windows"
+	@env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
+		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'"\
+		-v -o sts-wire_windows.exe
 
 .PHONY: build-macos-with-rclone
 build-macos-with-rclone: build-rclone-macos
