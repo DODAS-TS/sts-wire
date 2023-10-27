@@ -25,6 +25,10 @@ if ! pip3 freeze | grep -q -f ./jwt-tools/requirements.txt; then
   pip3 install --user -r ./jwt-tools/requirements.txt
 fi
 
+if ! pip3 freeze | grep -q 'PyJWT'; then
+  pip3 install --user PyJWT
+fi
+
 check_token() {
   if [ -s "$TMPDIR/token" ]; then
     local current_time=$(date +%s)
