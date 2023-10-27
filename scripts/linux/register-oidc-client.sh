@@ -49,5 +49,6 @@ fi
 
 mkdir -p $HOME/.oidc-agent
 export OIDC_CONFIG_DIR=$HOME/.oidc-agent
+export OIDC_AGENT=/usr/bin/oidc-agent
 eval $(oidc-agent-service use)
 oidc-gen --pw-file="$pw_file" --scope-all --confirm-default --iss="$issuer" --flow=device "$client_name"
