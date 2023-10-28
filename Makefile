@@ -25,7 +25,7 @@ build-rclone-windows:
 	@echo "==> bindata rclone windows"
 	@mkdir -p pkg/rclone/data/windows && rm -r -fo rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone windows"
-	@cd rclone && make build-windows && copy rclone\rclone ${ROOTDIR}\pkg\rclone\data\windows\rclone && cd ${ROOTDIR}
+	@cd rclone && $(MAKE) build-windows && copy rclone\rclone$(shell go env GOEXE) ${ROOTDIR}\pkg\rclone\data\windows\rclone$(shell go env GOEXE) && cd ${ROOTDIR}
 
 .PHONY: build-rclone-macos
 build-rclone-macos:
