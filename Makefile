@@ -18,14 +18,16 @@ endif
 
 .PHONY: all
 .NOTPARALLEL: build-linux build-windows build-macos build-rclone-macos build-rclone-linux download-rclone download-rclone-windows download-rclone-macos
-all: clean build-linux-with-rclone build-linux build-windows build-macos
+all: clean build-linux-with-rclone build-windows-with-rclone build-macos-with-rclone build-linux build-windows build-macos
 
 .PHONY: build-rclone-windows
 build-rclone-windows:
 	@echo "==> bindata rclone windows"
-	@mkdir -p pkg/rclone/data/windows && rm -r -fo rclone && git clone --branch rados https://github.com/DODAS-TS/rclone.git
+	@powershell -Command "if (-Not (Test-Path -Path '${ROOTDIR}\pkg\rclone\data\windows')) { New-Item -ItemType Directory -Path '${ROOTDIR}\pkg\rclone\data\windows' -Force }"
+	@powershell -Command "if (Test-Path -Path 'rclone') { Remove-Item -Path 'rclone' -Recurse -Force }"
+	@git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone windows"
-	@cd rclone && $(MAKE) build-windows && copy rclone\rclone$(shell go env GOEXE) ${ROOTDIR}\pkg\rclone\data\windows\rclone$(shell go env GOEXE) && cd ${ROOTDIR}
+	@powershell -Command "Set-Location rclone; & '${MAKE}' build-windows; Copy-Item 'rclone\rclone$(shell go env GOEXE)' '${ROOTDIR}\pkg\rclone\data\windows\rclone$(shell go env GOEXE)'; Set-Location ${ROOTDIR}"
 
 .PHONY: build-rclone-macos
 build-rclone-macos:
