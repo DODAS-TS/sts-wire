@@ -78,13 +78,7 @@ build-linux: download-rclone
 .PHONY: build-windows-with-rclone
 build-windows-with-rclone: build-rclone-windows
 	@echo "==> build sts-wire windows"
-	@env GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w\
-		-X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=${GITCOMMIT}'\
-		-X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=${STSVERSION}'\
-		-X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=${BUILTTIME}'\
-		-X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=${RCLONEVERSION}'\
-		-X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'"\
-		-v -o sts-wire_windows.exe
+	@powershell -Command "$$env:GOOS='windows'; $$env:CGO_ENABLED=0; go build -ldflags ""-s -w -X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=$$(GITCOMMIT)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=$$(STSVERSION)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=$$(BUILTTIME)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=$$(RCLONEVERSION)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'"" -v -o sts-wire_windows.exe"
 
 .PHONY: build-macos-with-rclone
 build-macos-with-rclone: build-rclone-macos
