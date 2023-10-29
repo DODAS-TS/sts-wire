@@ -80,8 +80,18 @@ if ! echo "$oidc_account_list" | grep -q "^$OIDC_CLIENT_NAME$"; then
   exit 1
 fi
 
-if [ ! -x ./sts-wire_osx ]; then
-  echo "Error: sts-wire_osx binary does not exist or is not executable."
+if [ ! -f "$pw_file" ]; then
+  echo "Error: The specified pw-file '$pw_file' does not exist."
+  exit 1
+fi
+
+if [ ! -d "$mountpoint" ]; then
+  echo "Error: The specified mount point '$mountpoint' does not exist."
+  exit 1
+fi
+
+if ! command -v sts-wire &> /dev/null; then
+  echo "Error: sts-wire is not installed or not in the system's PATH."
   exit 1
 fi
 
