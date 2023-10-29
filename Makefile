@@ -27,7 +27,7 @@ build-rclone-windows:
 	@powershell -Command "if (Test-Path -Path 'rclone') { Remove-Item -Path 'rclone' -Recurse -Force }"
 	@git clone --branch rados https://github.com/DODAS-TS/rclone.git
 	@echo "==> build rclone windows"
-	@powershell -Command "Set-Location rclone; & '${MAKE}' build-windows; Copy-Item 'rclone\rclone$(shell go env GOEXE)' '${ROOTDIR}\pkg\rclone\data\windows\rclone$(shell go env GOEXE)'; Set-Location ${ROOTDIR}"
+	@powershell -Command "Set-Location rclone; & '${MAKE}' build-windows; Copy-Item 'rclone\rclone$(shell go env GOEXE)' '${ROOTDIR}\pkg\rclone\data\windows\rclone'; Set-Location ${ROOTDIR}"
 
 .PHONY: build-rclone-macos
 build-rclone-macos:
@@ -78,7 +78,7 @@ build-linux: download-rclone
 .PHONY: build-windows-with-rclone
 build-windows-with-rclone: build-rclone-windows
 	@echo "==> build sts-wire windows"
-	@powershell -Command "$$env:GOOS='windows'; $$env:CGO_ENABLED=0; go build -ldflags ""-s -w -X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=$$(GITCOMMIT)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=$$(STSVERSION)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=$$(BUILTTIME)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=$$(RCLONEVERSION)' -X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'"" -v -o sts-wire_windows.exe"
+	@powershell -Command "$$env:GOOS='windows'; $$env:CGO_ENABLED=0; go build -ldflags \"-s -w -X 'github.com/DODAS-TS/sts-wire/pkg/core.GitCommit=$${GITCOMMIT}' -X 'github.com/DODAS-TS/sts-wire/pkg/core.StsVersion=$${STSVERSION}' -X 'github.com/DODAS-TS/sts-wire/pkg/core.BuiltTime=$${BUILTTIME}' -X 'github.com/DODAS-TS/sts-wire/pkg/core.RcloneVersion=$${RCLONEVERSION}' -X 'github.com/DODAS-TS/sts-wire/pkg/core.OsArch=windows'\" -v -o sts-wire_windows.exe"
 
 .PHONY: build-macos-with-rclone
 build-macos-with-rclone: build-rclone-macos
