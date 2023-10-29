@@ -92,4 +92,4 @@ export REFRESH_TOKEN=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file=pw-file | jq -r "
 wait_for_token
 export ACCESS_TOKEN=$(cat /tmp/token)
 sleep 5
-./sts-wire_osx "$iam_url" myRGW "$rgw_url" "$role" "$audience" "$bucket" "$mountpoint" --tryRemount --noDummyFileCheck
+sts-wire "$iam_url" myRGW "$rgw_url" "$role" "$audience" "$bucket" "$mountpoint" --tryRemount --noDummyFileCheck
