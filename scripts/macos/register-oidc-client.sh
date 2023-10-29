@@ -1,10 +1,12 @@
 issuer=""
 client_name=""
+pw_file=""
 
 usage() {
   echo "Usage: $0 -i ISSUER -c CLIENT_NAME"
   echo "  -i, --issuer       Specify the issuer URL (e.g., https://iam.example.com)"
   echo "  -c, --client-name  Specify the client name (e.g., iam-client)"
+  echo "  -p, --pw-file      Specify the password file"
   echo "  -h, --help         Display this help message"
   exit 1
 }
@@ -19,6 +21,10 @@ while [[ $# -gt 0 ]]; do
       client_name="$2"
       shift 2
       ;;
+    -p|--pw-file)
+      pw_file="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       ;;
@@ -29,10 +35,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [ -z "$issuer" ] || [ -z "$client_name" ]; then
-  echo "Error: Both issuer and client name must be provided."
+if [ -z "$issuer" ] || [ -z "$client_name" ] || [ -z "$pw_file" ]; then
+  echo "Error: Issuer, client name, and pw-file must be provided."
   usage
 fi
 
 eval $(oidc-agent-service use)
-oidc-gen --pw-file=pw-file --scope-all --confirm-default --iss="$issuer" --flow=device "$client_name"
+oidc-gen --pw-file="$pw_file" --scope-all --confirm-default --iss="$issuer" --flow=device "$client_name"

@@ -5,6 +5,7 @@ role=""
 audience=""
 bucket=""
 mountpoint=""
+pw_file=""
 
 wait_for_token() {
     while true; do
@@ -18,6 +19,7 @@ wait_for_token() {
 
 usage() {
   echo "Usage: $0 [OPTIONS]"
+  echo "  -p, --pw-file PW_FILE    OIDC password file"
   echo "  -c, --client-name NAME   OIDC client name"
   echo "  -i, --iam-url URL        IAM URL (e.g., https://iam.example.com/)"
   echo "  -r, --rgw-url URL        RGW URL (e.g., https://rgw.example.com/)"
@@ -31,6 +33,10 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    -p|--pw-file)
+      pw_file="$2"
+      shift 2
+      ;;
     -c|--client-name)
       OIDC_CLIENT_NAME="$2"
       shift 2
@@ -69,7 +75,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [ -z "$OIDC_CLIENT_NAME" ] || [ -z "$iam_url" ] || [ -z "$rgw_url" ] || [ -z "$role" ] || [ -z "$audience" ] || [ -z "$bucket" ] || [ -z "$mountpoint" ]; then
+if [ -z "$pw_file" ] || [ -z "$OIDC_CLIENT_NAME" ] || [ -z "$iam_url" ] || [ -z "$rgw_url" ] || [ -z "$role" ] || [ -z "$audience" ] || [ -z "$bucket" ] || [ -z "$mountpoint" ]; then
   echo "Error: All options must be provided."
   usage
 fi
@@ -95,10 +101,10 @@ if ! command -v sts-wire &> /dev/null; then
   exit 1
 fi
 
-source oidc-agent-init.sh $OIDC_CLIENT_NAME $audience
-export IAM_CLIENT_ID=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file=pw-file | jq -r ".client_id")
-export IAM_CLIENT_SECRET=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file=pw-file | jq -r ".client_secret")
-export REFRESH_TOKEN=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file=pw-file | jq -r ".refresh_token")
+source oidc-agent-init.sh $OIDC_CLIENT_NAME $audience $pw_file
+export IAM_CLIENT_ID=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file="$pw_file" | jq -r ".client_id")
+export IAM_CLIENT_SECRET=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file="$pw_file" | jq -r ".client_secret")
+export REFRESH_TOKEN=$(oidc-gen -p $OIDC_CLIENT_NAME --pw-file="$pw_file" | jq -r ".refresh_token")
 wait_for_token
 export ACCESS_TOKEN=$(cat /tmp/token)
 sleep 5

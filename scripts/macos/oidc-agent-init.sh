@@ -1,6 +1,7 @@
 export TMPDIR="/tmp"
 export OIDC_CLIENT_NAME=$1
 export AUDIENCE=$2
+export PW_FILE=$3
 export DYLD_LIBRARY_PATH=$PWD/oidc-agent-3.3.5/lib/api
 
 if [ ! -d oidc-agent-3.3.5 ]; then
@@ -35,7 +36,7 @@ check_token() {
 eval $(./oidc-agent-3.3.5/bin/oidc-agent)
 
 while true; do
-    ./oidc-agent-3.3.5/bin/oidc-add --pw-cmd "cat pw-file" $OIDC_CLIENT_NAME
+    ./oidc-agent-3.3.5/bin/oidc-add --pw-cmd "cat $PW_FILE" $OIDC_CLIENT_NAME
     if [ $? -eq 0 ]; then
         break
     else
