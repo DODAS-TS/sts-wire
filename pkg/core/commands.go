@@ -430,16 +430,23 @@ var (
 				NoPWD:          noPWD,
 			}
 
-			// Client registration
-			endpoint, clientResponse, _, err := clientIAM.InitClient(instance)
-			if err != nil {
-				panic(err)
-			}
+			clientResponse := ClientResponse {}
+			endpoint := iamServer
 
-			// TODO: use refresh_token
 			if os.Getenv("REFRESH_TOKEN") != "" {
 				clientResponse.ClientID = os.Getenv("IAM_CLIENT_ID")
 				clientResponse.ClientSecret = os.Getenv("IAM_CLIENT_SECRET")
+				clientResponse.Endpoint = iamServer
+			} else { // Client registration
+				iamEndpoint, iamClientResponse, _, err := clientIAM.InitClient(instance)
+				if err != nil {
+					panic(err)
+				}
+
+				clientResponse.ClientID = iamClientResponse.ClientID
+				clientResponse.ClientSecret = iamClientResponse.ClientSecret
+				clientResponse.Endpoint = iamServer
+				endpoint = iamEndpoint
 			}
 
 			server := Server{
