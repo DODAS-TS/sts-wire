@@ -89,7 +89,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			if err != nil {
 				panic(err)
 			}
-		} else if t.IAMServer != "" {
+		} else {
 			log.Debug().Str("IAM endpoint used", t.IAMServer).Msg("credentials")
 			color.Green.Printf("==> IAM endpoint used: %s\n", t.IAMServer)
 			endpoint = t.IAMServer
