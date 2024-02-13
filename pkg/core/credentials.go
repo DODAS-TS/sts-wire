@@ -131,7 +131,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 			// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 			if os.Getenv("REFRESH_TOKEN") == "" {
-				passMsg := fmt.Sprintf("%s Insert a password for the secret's encryption: ", color.Yellow.Sprint("==>"))
+				passMsg := fmt.Sprintf("%s Insert a password for the secrets encryption: ", color.Yellow.Sprint("==>"))
 				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, false)
 
 				if errGetPasswd != nil {
@@ -179,7 +179,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 		if os.Getenv("REFRESH_TOKEN") == "" {
-			passMsg := fmt.Sprintf("%s Insert a password for the secret's decryption: ", color.Yellow.Sprint("==>"))
+			passMsg := fmt.Sprintf("%s Insert a password for the secrets decryption: ", color.Yellow.Sprint("==>"))
 
 			passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
 
