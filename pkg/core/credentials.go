@@ -100,6 +100,15 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 		log.Debug().Str("IAM register url", register).Msg("credentials")
 		color.Green.Printf("==> IAM register url: %s\n", register)
 
+		answer, err := t.Scanner.GetInputString("Do you want to register a new client? [y/N]", "N")
+		if err != nil {
+			panic(err)
+		}
+
+		if strings.ToLower(answer) != "y" {
+			panic("Cannot authenticate the user. It's ugly but I have to panic out of the program!")
+		}
+
 		resp, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
 		if err != nil {
 			panic(err)
