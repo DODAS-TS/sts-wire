@@ -89,7 +89,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 			if err != nil {
 				panic(err)
 			}
-		} else if t.IAMServer != "" {
+		} else {
 			log.Debug().Str("IAM endpoint used", t.IAMServer).Msg("credentials")
 			color.Green.Printf("==> IAM endpoint used: %s\n", t.IAMServer)
 			endpoint = t.IAMServer
@@ -99,6 +99,15 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		log.Debug().Str("IAM register url", register).Msg("credentials")
 		color.Green.Printf("==> IAM register url: %s\n", register)
+
+		answer, err := t.Scanner.GetInputString("Do you want to register a new client? [y/N]", "N")
+		if err != nil {
+			panic(err)
+		}
+
+		if strings.ToLower(answer) != "y" {
+			panic("Cannot authenticate the user. It's ugly but I have to panic out of the program!")
+		}
 
 		resp, err := t.HTTPClient.Post(register, contentType, strings.NewReader(request))
 		if err != nil {
@@ -131,7 +140,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 			// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 			if os.Getenv("REFRESH_TOKEN") == "" {
-				passMsg := fmt.Sprintf("%s Insert a pasword for the secret's encryption: ", color.Yellow.Sprint("==>"))
+				passMsg := fmt.Sprintf("%s Insert a password for the secrets encryption: ", color.Yellow.Sprint("==>"))
 				passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, false)
 
 				if errGetPasswd != nil {
@@ -179,7 +188,7 @@ func (t *InitClientConfig) InitClient(instance string) (endpoint string, clientR
 
 		// TODO: verify branch when REFRESH_TOKEN is passed and is not empty string
 		if os.Getenv("REFRESH_TOKEN") == "" {
-			passMsg := fmt.Sprintf("%s Insert a pasword for the secret's decryption: ", color.Yellow.Sprint("==>"))
+			passMsg := fmt.Sprintf("%s Insert a password for the secrets decryption: ", color.Yellow.Sprint("==>"))
 
 			passwd, errGetPasswd = t.Scanner.GetPassword(passMsg, true)
 
